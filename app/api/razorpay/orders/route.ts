@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "Razorpay environment variables are missing",
+          error: "Razorpay environment variables are missing.",
         },
         { status: 500 }
       );
@@ -21,11 +21,11 @@ export async function POST(req: Request) {
     const body = await req.json();
     const amount = Number(body.amount);
 
-    if (!amount || amount <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid amount",
+          error: "Invalid payment amount.",
         },
         { status: 400 }
       );
@@ -44,9 +44,12 @@ export async function POST(req: Request) {
 
     console.log("RAZORPAY ORDER CREATED:", order.id);
 
+    // Checkout page directly expects these fields
     return NextResponse.json({
       success: true,
-      order,
+      order_id: order.id,
+      amount: order.amount,
+      currency: order.currency,
     });
   } catch (error) {
     console.error("RAZORPAY ORDER ERROR:", error);
@@ -57,7 +60,7 @@ export async function POST(req: Request) {
         error:
           error instanceof Error
             ? error.message
-            : "Unable to create Razorpay order",
+            : "Unable to create Razorpay order.",
       },
       { status: 500 }
     );
