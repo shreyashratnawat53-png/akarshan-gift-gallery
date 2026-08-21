@@ -3,14 +3,10 @@ import crypto from "crypto";
 
 export async function POST(req: Request) {
   try {
-    // =========================================================
-    // RAZORPAY SECRET KEY
-    // =========================================================
-
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
     if (!keySecret) {
-      console.error("RAZORPAY_KEY_SECRET is missing");
+      console.error("RAZORPAY_KEY_SECRET is missing.");
 
       return NextResponse.json(
         {
@@ -22,10 +18,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // =========================================================
-    // READ REQUEST
-    // =========================================================
-
     const body = await req.json();
 
     const {
@@ -34,17 +26,10 @@ export async function POST(req: Request) {
       razorpay_signature,
     } = body;
 
-    // =========================================================
-    // VALIDATE PAYMENT DATA
-    // =========================================================
-
     if (
       typeof razorpay_order_id !== "string" ||
       typeof razorpay_payment_id !== "string" ||
-      typeof razorpay_signature !== "string" ||
-      !razorpay_order_id ||
-      !razorpay_payment_id ||
-      !razorpay_signature
+      typeof razorpay_signature !== "string"
     ) {
       return NextResponse.json(
         {
@@ -56,10 +41,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // =========================================================
-    // GENERATE SIGNATURE
-    // =========================================================
-
     const generatedSignature = crypto
       .createHmac("sha256", keySecret)
       .update(
@@ -67,27 +48,8 @@ export async function POST(req: Request) {
       )
       .digest("hex");
 
-    // =========================================================
-    // COMPARE SIGNATURES SAFELY
-    // =========================================================
-
-    const generatedBuffer = Buffer.from(
-      generatedSignature,
-      "utf8"
-    );
-
-    const receivedBuffer = Buffer.from(
-      razorpay_signature,
-      "utf8"
-    );
-
-    if (
-      generatedBuffer.length !==
-      receivedBuffer.length
-    ) {
-      console.error(
-        "RAZORPAY SIGNATURE LENGTH MISMATCH"
-      );
+    if (generatedSignature.length !== razorpay_signature.length) {
+      console.error("RAZORPAY SIGNATURE LENGTH MISMATCH");
 
       return NextResponse.json(
         {
@@ -100,18 +62,12 @@ export async function POST(req: Request) {
     }
 
     const isValid = crypto.timingSafeEqual(
-      generatedBuffer,
-      receivedBuffer
+      Buffer.from(generatedSignature, "utf8"),
+      Buffer.from(razorpay_signature, "utf8")
     );
 
-    // =========================================================
-    // INVALID SIGNATURE
-    // =========================================================
-
     if (!isValid) {
-      console.error(
-        "RAZORPAY SIGNATURE VERIFICATION FAILED"
-      );
+      console.error("RAZORPAY SIGNATURE VERIFICATION FAILED");
 
       return NextResponse.json(
         {
@@ -122,10 +78,6 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-
-    // =========================================================
-    // PAYMENT VERIFIED
-    // =========================================================
 
     console.log(
       "RAZORPAY PAYMENT VERIFIED:",
@@ -139,10 +91,7 @@ export async function POST(req: Request) {
       orderId: razorpay_order_id,
     });
   } catch (error) {
-    console.error(
-      "RAZORPAY VERIFICATION ERROR:",
-      error
-    );
+    console.error("RAZORPAY VERIFICATION ERROR:", error);
 
     return NextResponse.json(
       {
