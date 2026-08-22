@@ -13,12 +13,7 @@ declare global {
 const SHOP_NUMBER = "919826368001";
 
 export default function CheckoutPage() {
-  const {
-    cart,
-    cartCount,
-    subtotal,
-    packingTotal,
-  } = useCart();
+  const { cart, cartCount, subtotal, packingTotal } = useCart();
 
   const [customer, setCustomer] = useState({
     name: "",
@@ -33,21 +28,9 @@ export default function CheckoutPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  /*
-  ---------------------------------------------------------
-  DELIVERY CHARGE
-  ---------------------------------------------------------
-
-  Mandsaur = ₹50
-
-  Outside Mandsaur:
-  Up to ₹999 = ₹70
-  ₹1000–₹1999 = ₹100
-  ₹2000–₹2999 = ₹120
-  ₹3000+ = ₹150
-
-  ---------------------------------------------------------
-  */
+  // =========================================================
+  // DELIVERY CHARGE
+  // =========================================================
 
   const deliveryCharge = useMemo(() => {
     const city = customer.city.trim().toLowerCase();
@@ -79,14 +62,11 @@ export default function CheckoutPage() {
     return 150;
   }, [customer.city, subtotal]);
 
-  const finalTotal =
-    subtotal + packingTotal + deliveryCharge;
+  const finalTotal = subtotal + packingTotal + deliveryCharge;
 
-  /*
-  ---------------------------------------------------------
-  UPDATE CUSTOMER FIELD
-  ---------------------------------------------------------
-  */
+  // =========================================================
+  // UPDATE CUSTOMER FIELD
+  // =========================================================
 
   const updateField = (
     field: keyof typeof customer,
@@ -98,11 +78,9 @@ export default function CheckoutPage() {
     }));
   };
 
-  /*
-  ---------------------------------------------------------
-  LOAD RAZORPAY SCRIPT
-  ---------------------------------------------------------
-  */
+  // =========================================================
+  // LOAD RAZORPAY SCRIPT
+  // =========================================================
 
   const loadRazorpay = (): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -128,15 +106,11 @@ export default function CheckoutPage() {
     });
   };
 
-  /*
-  ---------------------------------------------------------
-  CREATE WHATSAPP ORDER MESSAGE
-  ---------------------------------------------------------
-  */
+  // =========================================================
+  // CREATE WHATSAPP ORDER MESSAGE
+  // =========================================================
 
-  const createWhatsAppMessage = (
-    paymentId: string
-  ) => {
+  const createWhatsAppMessage = (paymentId: string) => {
     const products = cart
       .map(
         (item) =>
@@ -204,11 +178,9 @@ Every Gift Tells a Story. ✨
 `;
   };
 
-  /*
-  ---------------------------------------------------------
-  SAVE ORDER DATA
-  ---------------------------------------------------------
-  */
+  // =========================================================
+  // SAVE ORDER DATA
+  // =========================================================
 
   const saveOrderData = (
     paymentId: string,
@@ -238,23 +210,20 @@ Every Gift Tells a Story. ✨
     );
   };
 
-  /*
-  ---------------------------------------------------------
-  START RAZORPAY PAYMENT
-  ---------------------------------------------------------
-  */
+  // =========================================================
+  // START RAZORPAY PAYMENT
+  // =========================================================
 
   const startPayment = async () => {
     try {
       setError("");
       setLoading(true);
 
-      /*
-      Load Razorpay
-      */
+      // -----------------------------------------------------
+      // LOAD RAZORPAY
+      // -----------------------------------------------------
 
-      const razorpayLoaded =
-        await loadRazorpay();
+      const razorpayLoaded = await loadRazorpay();
 
       if (!razorpayLoaded) {
         setError(
@@ -265,12 +234,13 @@ Every Gift Tells a Story. ✨
         return;
       }
 
-      /*
-      Create Razorpay order
-      */
+      // -----------------------------------------------------
+      // CREATE RAZORPAY ORDER
+      // IMPORTANT: THIS IS THE FIXED API PATH
+      // -----------------------------------------------------
 
       const response = await fetch(
-        "/api/create-order",
+        "/api/razorpay/orders",
         {
           method: "POST",
           headers: {
@@ -291,9 +261,15 @@ Every Gift Tells a Story. ✨
         );
       }
 
-      /*
-      Razorpay options
-      */
+      if (!data?.order_id) {
+        throw new Error(
+          "Razorpay order ID was not received."
+        );
+      }
+
+      // -----------------------------------------------------
+      // RAZORPAY OPTIONS
+      // -----------------------------------------------------
 
       const options = {
         key:
@@ -306,8 +282,7 @@ Every Gift Tells a Story. ✨
 
         name: "Akarshan Gift Gallery",
 
-        description:
-          "Gift Order Payment",
+        description: "Gift Order Payment",
 
         order_id: data.order_id,
 
@@ -333,13 +308,14 @@ Every Gift Tells a Story. ✨
             setLoading(true);
             setError("");
 
-            /*
-            Verify payment on backend
-            */
+            // -------------------------------------------------
+            // VERIFY PAYMENT
+            // IMPORTANT: THIS IS THE FIXED API PATH
+            // -------------------------------------------------
 
             const verifyResponse =
               await fetch(
-                "/api/verify-payment",
+                "/api/razorpay/verify",
                 {
                   method: "POST",
                   headers: {
@@ -369,9 +345,15 @@ Every Gift Tells a Story. ✨
               );
             }
 
-            /*
-            Save successful order
-            */
+            if (!verifyData?.verified) {
+              throw new Error(
+                "Payment could not be verified."
+              );
+            }
+
+            // -------------------------------------------------
+            // SAVE SUCCESSFUL ORDER
+            // -------------------------------------------------
 
             saveOrderData(
               paymentResponse.razorpay_payment_id,
@@ -383,9 +365,9 @@ Every Gift Tells a Story. ✨
               "paid"
             );
 
-            /*
-            Create WhatsApp message
-            */
+            // -------------------------------------------------
+            // CREATE WHATSAPP MESSAGE
+            // -------------------------------------------------
 
             const message =
               createWhatsAppMessage(
@@ -398,9 +380,9 @@ Every Gift Tells a Story. ✨
                 message
               )}`;
 
-            /*
-            Open WhatsApp
-            */
+            // -------------------------------------------------
+            // OPEN WHATSAPP
+            // -------------------------------------------------
 
             window.location.href =
               whatsappUrl;
@@ -429,22 +411,20 @@ Every Gift Tells a Story. ✨
         },
       };
 
-      /*
-      Open Razorpay
-      */
+      // -----------------------------------------------------
+      // OPEN RAZORPAY
+      // -----------------------------------------------------
 
       const razorpay =
         new window.Razorpay(options);
 
-      /*
-      Payment failed event
-      */
+      // -----------------------------------------------------
+      // PAYMENT FAILED EVENT
+      // -----------------------------------------------------
 
       razorpay.on(
         "payment.failed",
-        function (
-          response: any
-        ) {
+        function (response: any) {
           console.error(
             "Razorpay payment failed:",
             response
@@ -476,11 +456,9 @@ Every Gift Tells a Story. ✨
     }
   };
 
-  /*
-  ---------------------------------------------------------
-  FORM SUBMIT
-  ---------------------------------------------------------
-  */
+  // =========================================================
+  // FORM SUBMIT
+  // =========================================================
 
   const handleSubmit = (
     e: FormEvent<HTMLFormElement>
@@ -490,9 +468,7 @@ Every Gift Tells a Story. ✨
     setError("");
 
     if (cart.length === 0) {
-      setError(
-        "Your cart is empty."
-      );
+      setError("Your cart is empty.");
       return;
     }
 
@@ -546,11 +522,9 @@ Every Gift Tells a Story. ✨
     startPayment();
   };
 
-  /*
-  ---------------------------------------------------------
-  EMPTY CART
-  ---------------------------------------------------------
-  */
+  // =========================================================
+  // EMPTY CART
+  // =========================================================
 
   if (cart.length === 0) {
     return (
@@ -585,11 +559,9 @@ Every Gift Tells a Story. ✨
     );
   }
 
-  /*
-  ---------------------------------------------------------
-  CHECKOUT PAGE
-  ---------------------------------------------------------
-  */
+  // =========================================================
+  // CHECKOUT PAGE
+  // =========================================================
 
   return (
     <main className="min-h-screen bg-[#FFF9F5] px-5 pb-20 pt-28 sm:px-6 md:pt-32">
@@ -622,7 +594,6 @@ Every Gift Tells a Story. ✨
         </div>
 
       </section>
-
 
       {/* MAIN CHECKOUT */}
 
@@ -660,7 +631,6 @@ Every Gift Tells a Story. ✨
                 <div className="grid gap-5 md:grid-cols-2">
 
                   <div>
-
                     <label className="text-sm font-semibold text-[#4A3728]">
                       Full Name *
                     </label>
@@ -677,11 +647,9 @@ Every Gift Tells a Story. ✨
                       placeholder="Enter your full name"
                       className="mt-2 w-full rounded-2xl border border-[#E1D2C8] bg-[#FFFDFC] px-4 py-3.5 text-sm text-[#292522] outline-none transition placeholder:text-[#B3A9A2] focus:border-[#7D1638] focus:ring-2 focus:ring-[#7D1638]/10"
                     />
-
                   </div>
 
                   <div>
-
                     <label className="text-sm font-semibold text-[#4A3728]">
                       Mobile Number *
                     </label>
@@ -701,11 +669,9 @@ Every Gift Tells a Story. ✨
                       inputMode="numeric"
                       className="mt-2 w-full rounded-2xl border border-[#E1D2C8] bg-[#FFFDFC] px-4 py-3.5 text-sm text-[#292522] outline-none transition placeholder:text-[#B3A9A2] focus:border-[#7D1638] focus:ring-2 focus:ring-[#7D1638]/10"
                     />
-
                   </div>
 
                 </div>
-
 
                 {/* ADDRESS */}
 
@@ -729,7 +695,6 @@ Every Gift Tells a Story. ✨
                   />
 
                 </div>
-
 
                 {/* CITY STATE PINCODE */}
 
@@ -802,19 +767,15 @@ Every Gift Tells a Story. ✨
 
                 </div>
 
-
                 {/* DELIVERY NOTE */}
 
                 <div>
 
                   <label className="text-sm font-semibold text-[#4A3728]">
-
                     Delivery Note
-
                     <span className="ml-2 font-normal text-[#9A8F87]">
                       Optional
                     </span>
-
                   </label>
 
                   <textarea
@@ -832,7 +793,6 @@ Every Gift Tells a Story. ✨
 
                 </div>
 
-
                 {/* PAYMENT */}
 
                 <div className="border-t border-[#E4D5CB] pt-7">
@@ -844,7 +804,6 @@ Every Gift Tells a Story. ✨
                   <h2 className="mt-2 font-brand text-2xl font-semibold text-[#7D1638]">
                     Payment Method
                   </h2>
-
 
                   {/* RAZORPAY BOX */}
 
@@ -890,7 +849,6 @@ Every Gift Tells a Story. ✨
 
                 </div>
 
-
                 {/* ERROR */}
 
                 {error && (
@@ -898,7 +856,6 @@ Every Gift Tells a Story. ✨
                     {error}
                   </div>
                 )}
-
 
                 {/* PAYMENT BUTTON */}
 
@@ -917,7 +874,6 @@ Every Gift Tells a Story. ✨
               </form>
 
             </div>
-
 
             {/* TRUST CARDS */}
 
@@ -939,7 +895,6 @@ Every Gift Tells a Story. ✨
 
               </div>
 
-
               <div className="rounded-2xl border border-[#E4D5CB] bg-white p-5">
 
                 <span className="text-xl">
@@ -955,7 +910,6 @@ Every Gift Tells a Story. ✨
                 </p>
 
               </div>
-
 
               <div className="rounded-2xl border border-[#E4D5CB] bg-white p-5">
 
@@ -977,7 +931,6 @@ Every Gift Tells a Story. ✨
 
           </div>
 
-
           {/* RIGHT SIDE — ORDER SUMMARY */}
 
           <aside className="h-fit rounded-[2rem] border border-[#E4D5CB] bg-white p-6 shadow-[0_10px_35px_rgba(70,40,20,0.05)] lg:sticky lg:top-28">
@@ -989,7 +942,6 @@ Every Gift Tells a Story. ✨
             <h2 className="mt-3 font-brand text-3xl font-semibold text-[#7D1638]">
               Your Order
             </h2>
-
 
             {/* CART PRODUCTS */}
 
@@ -1040,7 +992,6 @@ Every Gift Tells a Story. ✨
 
             </div>
 
-
             {/* PRICE SUMMARY */}
 
             <div className="mt-6 space-y-4">
@@ -1057,7 +1008,6 @@ Every Gift Tells a Story. ✨
 
               </div>
 
-
               <div className="flex justify-between text-sm text-[#766D67]">
 
                 <span>
@@ -1072,7 +1022,6 @@ Every Gift Tells a Story. ✨
 
               </div>
 
-
               <div className="flex justify-between text-sm text-[#766D67]">
 
                 <span>
@@ -1086,7 +1035,6 @@ Every Gift Tells a Story. ✨
                 </span>
 
               </div>
-
 
               <div className="border-t border-[#E4D5CB] pt-5">
 
@@ -1108,7 +1056,6 @@ Every Gift Tells a Story. ✨
 
             </div>
 
-
             {/* RAZORPAY INFO */}
 
             <div className="mt-7 rounded-2xl bg-[#FFF9F4] p-4">
@@ -1122,7 +1069,6 @@ Every Gift Tells a Story. ✨
               </p>
 
             </div>
-
 
             {/* DELIVERY CHARGES */}
 
@@ -1139,7 +1085,6 @@ Every Gift Tells a Story. ✨
 
             </div>
 
-
             {/* PROMISE */}
 
             <div className="mt-4 rounded-2xl bg-[#FFF9F4] p-4">
@@ -1153,7 +1098,6 @@ Every Gift Tells a Story. ✨
               </p>
 
             </div>
-
 
             {/* EDIT CART */}
 
