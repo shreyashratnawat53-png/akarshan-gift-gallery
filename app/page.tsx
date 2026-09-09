@@ -173,8 +173,6 @@ export default function Home() {
             A Memory That Lasts Forever.
           </p>
 
-          {/* HERO BUTTONS */}
-
           <div className="mx-auto mt-7 flex w-full max-w-sm flex-col gap-3 sm:mt-8 sm:max-w-none sm:flex-row sm:justify-center">
 
             <Link
@@ -223,80 +221,280 @@ export default function Home() {
       </section>
 
       {/* =========================================================
-          RAKHI BANNER
+          THE ART OF GIFTING — NEW WOW SECTION
       ========================================================= */}
 
-      <section className="bg-[#F8F3EA] px-4 py-5 sm:px-6 sm:py-7">
+      <section className="relative overflow-hidden bg-[#071426] px-4 py-14 sm:px-6 sm:py-20 md:py-24">
 
-        <div
-          className="
-            relative mx-auto max-w-6xl overflow-hidden
-            rounded-[1.5rem] sm:rounded-[1.8rem]
-            border border-[#E3C98D]
-            bg-gradient-to-r from-[#F7D9D0] via-[#F8E8D4] to-[#DCEBE6]
-            shadow-[0_18px_50px_rgba(30,40,60,0.12)]
-          "
-        >
+        {/* Background glow */}
+        <div className="pointer-events-none absolute -left-32 top-10 h-80 w-80 rounded-full bg-[#63C7B8]/10 blur-[100px]" />
+        <div className="pointer-events-none absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-[#F4D58D]/10 blur-[110px]" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#E85D75]/5 blur-[100px]" />
 
-          <div className="pointer-events-none absolute -left-24 top-1/2 h-52 w-52 -translate-y-1/2 rounded-full bg-[#E85D75]/15 blur-3xl" />
+        {/* Tiny stars */}
+        <div className="pointer-events-none absolute left-[8%] top-[18%] text-[#F4D58D]/50">
+          ✦
+        </div>
+        <div className="pointer-events-none absolute right-[12%] top-[25%] text-[#63C7B8]/50">
+          ✧
+        </div>
+        <div className="pointer-events-none absolute bottom-[18%] left-[18%] text-white/20">
+          ✦
+        </div>
+        <div className="pointer-events-none absolute bottom-[25%] right-[20%] text-[#F4D58D]/30">
+          ·
+        </div>
 
-          <div className="pointer-events-none absolute right-1/3 top-0 h-40 w-40 rounded-full bg-[#F4D58D]/20 blur-3xl" />
+        <div className="relative mx-auto max-w-7xl">
 
-          <div className="grid items-center md:grid-cols-2">
+          {/* Heading */}
 
-            {/* LEFT CONTENT */}
+          <div className="text-center">
 
-            <div className="relative p-6 text-center sm:p-9 md:p-11 md:text-left">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.45em] text-[#F4D58D] sm:text-xs sm:tracking-[0.6em]">
+              The Art of Gifting
+            </p>
 
-              <p className="text-[8px] font-semibold uppercase tracking-[0.35em] text-[#A67822] sm:text-xs sm:tracking-[0.45em]">
-                Rakhi Special
-              </p>
+            <h2 className="mt-4 text-[2rem] font-light leading-tight text-white sm:text-5xl md:text-6xl">
+              Some moments
+              <br />
+              <span className="font-semibold text-[#F4D58D]">
+                deserve more.
+              </span>
+            </h2>
 
-              <h2 className="mt-3 text-[1.8rem] font-bold leading-tight text-[#16213E] sm:text-4xl">
-                Celebrate the
-                <br />
-                <span className="text-[#E85D75]">
-                  Bond of Love.
-                </span>
-              </h2>
+            <p className="mx-auto mt-5 max-w-2xl text-[13px] leading-6 text-[#C8D0DC] sm:text-base sm:leading-7">
+              It is not about how big the gift is.
+              <br className="sm:hidden" />
+              {" "}It is about how special they feel when they receive it.
+            </p>
 
-              <p className="mx-auto mt-4 max-w-md text-[13px] leading-6 text-[#526174] sm:text-sm md:mx-0">
-                Beautiful Rakhis and thoughtful gifts to make your
-                brother-sister bond even more special.
-              </p>
+          </div>
 
-              <Link
-                href="/shop"
+          {/* Main visual */}
+
+          <div className="relative mx-auto mt-10 max-w-5xl sm:mt-14">
+
+            {/* Orbit rings */}
+
+            <div className="pointer-events-none absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#F4D58D]/10 sm:h-72 sm:w-72" />
+
+            <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#63C7B8]/10 sm:h-[22rem] sm:w-[22rem]" />
+
+            <div className="relative mx-auto flex min-h-[360px] items-center justify-center sm:min-h-[430px]">
+
+              {/* Floating card left */}
+
+              <div
                 className="
-                  mt-6 inline-flex min-h-[46px] items-center justify-center
-                  rounded-full bg-[#16213E]
-                  px-6 py-3
-                  text-[11px] font-semibold text-[#F4D58D]
-                  shadow-[0_10px_25px_rgba(22,33,62,0.20)]
-                  transition duration-300
-                  hover:-translate-y-1 hover:bg-[#223356]
-                  active:scale-[0.98]
-                  sm:px-7 sm:text-xs
+                  absolute left-0 top-8 z-20
+                  hidden w-40 rotate-[-7deg]
+                  rounded-2xl border border-white/10
+                  bg-white/[0.06] p-4
+                  shadow-[0_20px_50px_rgba(0,0,0,0.25)]
+                  backdrop-blur-xl
+                  sm:block
+                  md:w-48
                 "
               >
-                Explore Rakhi Gifts →
-              </Link>
+                <div className="text-2xl">🎂</div>
+
+                <p className="mt-3 text-[9px] uppercase tracking-[0.25em] text-[#63C7B8]">
+                  For Their Day
+                </p>
+
+                <p className="mt-1 text-sm font-semibold text-white">
+                  Make birthdays unforgettable.
+                </p>
+              </div>
+
+              {/* Floating card right */}
+
+              <div
+                className="
+                  absolute right-0 top-16 z-20
+                  hidden w-40 rotate-[7deg]
+                  rounded-2xl border border-white/10
+                  bg-white/[0.06] p-4
+                  shadow-[0_20px_50px_rgba(0,0,0,0.25)]
+                  backdrop-blur-xl
+                  sm:block
+                  md:w-48
+                "
+              >
+                <div className="text-2xl">❤️</div>
+
+                <p className="mt-3 text-[9px] uppercase tracking-[0.25em] text-[#F4D58D]">
+                  For Someone Special
+                </p>
+
+                <p className="mt-1 text-sm font-semibold text-white">
+                  Say what words cannot.
+                </p>
+              </div>
+
+              {/* Bottom floating cards */}
+
+              <div
+                className="
+                  absolute bottom-3 left-[4%] z-20
+                  hidden w-40 rotate-[5deg]
+                  rounded-2xl border border-white/10
+                  bg-white/[0.06] p-4
+                  shadow-[0_20px_50px_rgba(0,0,0,0.25)]
+                  backdrop-blur-xl
+                  sm:block
+                "
+              >
+                <div className="text-2xl">✨</div>
+
+                <p className="mt-3 text-[9px] uppercase tracking-[0.25em] text-[#E85D75]">
+                  Just Because
+                </p>
+
+                <p className="mt-1 text-sm font-semibold text-white">
+                  The sweetest surprises need no reason.
+                </p>
+              </div>
+
+              <div
+                className="
+                  absolute bottom-6 right-[4%] z-20
+                  hidden w-40 rotate-[-5deg]
+                  rounded-2xl border border-white/10
+                  bg-white/[0.06] p-4
+                  shadow-[0_20px_50px_rgba(0,0,0,0.25)]
+                  backdrop-blur-xl
+                  sm:block
+                "
+              >
+                <div className="text-2xl">🎁</div>
+
+                <p className="mt-3 text-[9px] uppercase tracking-[0.25em] text-[#63C7B8]">
+                  Made For Them
+                </p>
+
+                <p className="mt-1 text-sm font-semibold text-white">
+                  Thoughtful. Personal. Beautiful.
+                </p>
+              </div>
+
+              {/* Central luxury gift */}
+
+              <div className="relative z-10">
+
+                {/* Glow */}
+
+                <div className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F4D58D]/10 blur-[55px] sm:h-64 sm:w-64" />
+
+                {/* Main circle */}
+
+                <div
+                  className="
+                    relative flex h-52 w-52 items-center justify-center
+                    rounded-full
+                    border border-[#F4D58D]/30
+                    bg-gradient-to-br from-[#182846] via-[#101D35] to-[#071426]
+                    shadow-[0_0_80px_rgba(244,213,141,0.12)]
+                    sm:h-64 sm:w-64
+                  "
+                >
+
+                  {/* Inner ring */}
+
+                  <div className="absolute inset-4 rounded-full border border-[#F4D58D]/10 sm:inset-5" />
+
+                  {/* Gift icon */}
+
+                  <div className="text-center">
+
+                    <div className="text-6xl drop-shadow-[0_8px_25px_rgba(244,213,141,0.25)] sm:text-7xl">
+                      🎁
+                    </div>
+
+                    <p className="mt-3 text-[8px] font-semibold uppercase tracking-[0.4em] text-[#F4D58D] sm:text-[10px] sm:tracking-[0.5em]">
+                      Akarshan
+                    </p>
+
+                  </div>
+
+                  {/* Orbit dots */}
+
+                  <div className="absolute left-4 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[#63C7B8] shadow-[0_0_15px_rgba(99,199,184,0.8)]" />
+
+                  <div className="absolute right-5 top-[22%] h-1.5 w-1.5 rounded-full bg-[#F4D58D] shadow-[0_0_15px_rgba(244,213,141,0.8)]" />
+
+                  <div className="absolute bottom-[18%] right-10 h-2 w-2 rounded-full bg-[#E85D75] shadow-[0_0_15px_rgba(232,93,117,0.8)]" />
+
+                </div>
+
+              </div>
 
             </div>
 
-            {/* RIGHT IMAGE */}
+          </div>
 
-            <div className="relative h-48 overflow-hidden sm:h-60 md:h-64">
+          {/* Mobile mini cards */}
 
-              <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-r from-[#F8E8D4]/30 via-transparent to-transparent" />
+          <div className="mt-2 grid grid-cols-1 gap-3 sm:hidden">
 
-              <img
-                src="/images/rakhi.jpg"
-                alt="Rakhi special gifts"
-                className="h-full w-full object-cover transition duration-700 hover:scale-105"
-              />
+            <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-4 text-center backdrop-blur-xl">
+
+              <span className="text-xl">🎂</span>
+
+              <p className="mt-2 text-[9px] uppercase tracking-[0.25em] text-[#63C7B8]">
+                For Their Day
+              </p>
+
+              <p className="mt-1 text-xs font-medium text-white">
+                Make birthdays unforgettable.
+              </p>
 
             </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-4 text-center backdrop-blur-xl">
+
+              <span className="text-xl">❤️</span>
+
+              <p className="mt-2 text-[9px] uppercase tracking-[0.25em] text-[#F4D58D]">
+                For Someone Special
+              </p>
+
+              <p className="mt-1 text-xs font-medium text-white">
+                Say what words cannot.
+              </p>
+
+            </div>
+
+          </div>
+
+          {/* Bottom message */}
+
+          <div className="mt-8 text-center sm:mt-2">
+
+            <p className="text-xs font-medium italic text-[#AEB8C7] sm:text-sm">
+              “The best gifts are the ones that make someone feel remembered.”
+            </p>
+
+            <Link
+              href="/shop"
+              className="
+                mt-6 inline-flex min-h-[48px] items-center justify-center
+                rounded-full
+                border border-[#F4D58D]/60
+                bg-[#F4D58D]
+                px-7 py-3
+                text-[12px] font-bold text-[#071426]
+                shadow-[0_12px_35px_rgba(244,213,141,0.18)]
+                transition duration-300
+                hover:-translate-y-1
+                hover:bg-white
+                active:scale-[0.98]
+                sm:px-8 sm:text-sm
+              "
+            >
+              Discover Your Gift →
+            </Link>
 
           </div>
 
@@ -434,8 +632,6 @@ export default function Home() {
             ))}
 
           </div>
-
-          {/* ALL CATEGORIES */}
 
           <div className="mt-7 text-center sm:mt-8">
 
@@ -736,52 +932,50 @@ export default function Home() {
       </footer>
 
       {/* =========================================================
-          FLOATING RAKHI BUTTON
+          FLOATING WHATSAPP BUTTON
       ========================================================= */}
 
-      <Link
-        href="/shop"
-        aria-label="Explore Rakhi Gifts"
+      <a
+        href="https://wa.me/919826368001?text=Hi%20Akarshan%20Gift%20Gallery%2C%20I%20want%20to%20know%20more%20about%20your%20gifts."
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Chat on WhatsApp"
         className="
-          fixed bottom-3 right-3 z-40
-          flex items-center gap-1.5
+          fixed bottom-4 right-4 z-50
+          flex items-center gap-2
           rounded-full
-          border border-[#F4D58D]
+          border border-[#F4D58D]/70
           bg-[#16213E]/95
-          p-1.5 pr-2.5
-          shadow-[0_12px_40px_rgba(0,0,0,0.25)]
+          px-3 py-2.5
+          text-white
+          shadow-[0_12px_40px_rgba(0,0,0,0.30)]
           backdrop-blur-xl
           transition duration-300
           hover:-translate-y-1 hover:scale-105
+          hover:border-[#F4D58D]
           active:scale-[0.97]
           sm:bottom-7 sm:right-7
-          sm:gap-3 sm:p-2 sm:pr-5
+          sm:gap-3 sm:px-4 sm:py-3
         "
       >
 
-        <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border-2 border-[#F4D58D] bg-[#F8E4DD] sm:h-12 sm:w-12">
-
-          <img
-            src="/images/rakhi.jpg"
-            alt="Rakhi gifts"
-            className="h-full w-full object-cover"
-          />
-
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#63C7B8]/15 text-xl sm:h-11 sm:w-11">
+          💬
         </div>
 
-        <div className="pr-0.5">
+        <div className="pr-1">
 
-          <p className="text-[7px] font-semibold uppercase tracking-widest text-[#63C7B8] sm:text-[9px]">
-            Special
+          <p className="text-[7px] font-semibold uppercase tracking-[0.2em] text-[#F4D58D] sm:text-[8px]">
+            Need Help?
           </p>
 
-          <p className="whitespace-nowrap text-[10px] font-semibold text-white sm:text-sm">
-            Rakhi Gifts →
+          <p className="text-[10px] font-semibold text-white sm:text-xs">
+            Chat on WhatsApp
           </p>
 
         </div>
 
-      </Link>
+      </a>
 
     </main>
   );
