@@ -3,6 +3,7 @@ import { Cinzel, Poppins } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "./context/CartContext";
 import Navbar from "./components/Navbar";
+import { Analytics } from "@vercel/analytics/next";
 
 const cinzel = Cinzel({
   subsets: ["latin"],
@@ -36,6 +37,8 @@ export default function RootLayout({
           <Navbar />
           {children}
         </CartProvider>
+
+        <Analytics />
       </body>
     </html>
   );
