@@ -59,6 +59,37 @@ const cardColors = [
   "bg-[#DCEBE6]",
 ];
 
+const budgetOptions = [
+  {
+    title: "Under ₹500",
+    subtitle: "Thoughtful gifts",
+    emoji: "🎁",
+    href: "/shop?budget=under500",
+    className: "bg-[#F8E1D8]",
+  },
+  {
+    title: "₹500 – ₹1000",
+    subtitle: "Beautiful surprises",
+    emoji: "✨",
+    href: "/shop?budget=500to1000",
+    className: "bg-[#DCEBE6]",
+  },
+  {
+    title: "₹1000 – ₹2000",
+    subtitle: "Premium gifting",
+    emoji: "💝",
+    href: "/shop?budget=1000to2000",
+    className: "bg-[#F4EACF]",
+  },
+  {
+    title: "₹2000+",
+    subtitle: "Luxury moments",
+    emoji: "👑",
+    href: "/shop?budget=above2000",
+    className: "bg-[#E6DCEB]",
+  },
+];
+
 export default function Home() {
   const gifts = Array.from({ length: 18 });
 
@@ -221,33 +252,32 @@ export default function Home() {
       </section>
 
       {/* =========================================================
-          THE ART OF GIFTING — NEW WOW SECTION
+          THE ART OF GIFTING
       ========================================================= */}
 
       <section className="relative overflow-hidden bg-[#071426] px-4 py-14 sm:px-6 sm:py-20 md:py-24">
 
-        {/* Background glow */}
         <div className="pointer-events-none absolute -left-32 top-10 h-80 w-80 rounded-full bg-[#63C7B8]/10 blur-[100px]" />
         <div className="pointer-events-none absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-[#F4D58D]/10 blur-[110px]" />
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#E85D75]/5 blur-[100px]" />
 
-        {/* Tiny stars */}
         <div className="pointer-events-none absolute left-[8%] top-[18%] text-[#F4D58D]/50">
           ✦
         </div>
+
         <div className="pointer-events-none absolute right-[12%] top-[25%] text-[#63C7B8]/50">
           ✧
         </div>
+
         <div className="pointer-events-none absolute bottom-[18%] left-[18%] text-white/20">
           ✦
         </div>
+
         <div className="pointer-events-none absolute bottom-[25%] right-[20%] text-[#F4D58D]/30">
           ·
         </div>
 
         <div className="relative mx-auto max-w-7xl">
-
-          {/* Heading */}
 
           <div className="text-center">
 
@@ -271,19 +301,13 @@ export default function Home() {
 
           </div>
 
-          {/* Main visual */}
-
           <div className="relative mx-auto mt-10 max-w-5xl sm:mt-14">
-
-            {/* Orbit rings */}
 
             <div className="pointer-events-none absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#F4D58D]/10 sm:h-72 sm:w-72" />
 
             <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#63C7B8]/10 sm:h-[22rem] sm:w-[22rem]" />
 
             <div className="relative mx-auto flex min-h-[360px] items-center justify-center sm:min-h-[430px]">
-
-              {/* Floating card left */}
 
               <div
                 className="
@@ -308,8 +332,6 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Floating card right */}
-
               <div
                 className="
                   absolute right-0 top-16 z-20
@@ -332,8 +354,6 @@ export default function Home() {
                   Say what words cannot.
                 </p>
               </div>
-
-              {/* Bottom floating cards */}
 
               <div
                 className="
@@ -379,15 +399,9 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Central luxury gift */}
-
               <div className="relative z-10">
 
-                {/* Glow */}
-
                 <div className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F4D58D]/10 blur-[55px] sm:h-64 sm:w-64" />
-
-                {/* Main circle */}
 
                 <div
                   className="
@@ -400,11 +414,7 @@ export default function Home() {
                   "
                 >
 
-                  {/* Inner ring */}
-
                   <div className="absolute inset-4 rounded-full border border-[#F4D58D]/10 sm:inset-5" />
-
-                  {/* Gift icon */}
 
                   <div className="text-center">
 
@@ -417,8 +427,6 @@ export default function Home() {
                     </p>
 
                   </div>
-
-                  {/* Orbit dots */}
 
                   <div className="absolute left-4 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[#63C7B8] shadow-[0_0_15px_rgba(99,199,184,0.8)]" />
 
@@ -433,8 +441,6 @@ export default function Home() {
             </div>
 
           </div>
-
-          {/* Mobile mini cards */}
 
           <div className="mt-2 grid grid-cols-1 gap-3 sm:hidden">
 
@@ -468,8 +474,6 @@ export default function Home() {
 
           </div>
 
-          {/* Bottom message */}
-
           <div className="mt-8 text-center sm:mt-2">
 
             <p className="text-xs font-medium italic text-[#AEB8C7] sm:text-sm">
@@ -494,6 +498,123 @@ export default function Home() {
               "
             >
               Discover Your Gift →
+            </Link>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      {/* =========================================================
+          GIFTS FOR EVERY BUDGET
+      ========================================================= */}
+
+      <section className="relative overflow-hidden bg-[#F8F3EA] px-4 py-14 sm:px-6 sm:py-20 md:py-24">
+
+        <div className="pointer-events-none absolute -left-24 top-20 h-64 w-64 rounded-full bg-[#E85D75]/10 blur-3xl" />
+
+        <div className="pointer-events-none absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-[#63C7B8]/10 blur-3xl" />
+
+        <div className="relative mx-auto max-w-7xl">
+
+          <div className="text-center">
+
+            <p className="text-[9px] font-semibold uppercase tracking-[0.4em] text-[#A67822] sm:text-xs sm:tracking-[0.5em]">
+              Find Your Perfect Gift
+            </p>
+
+            <h2 className="mt-3 text-[1.9rem] font-semibold leading-tight text-[#16213E] sm:text-4xl md:text-5xl">
+              Gifts For Every Budget.
+            </h2>
+
+            <p className="mx-auto mt-4 max-w-2xl text-[13px] leading-6 text-[#526174] sm:text-base sm:leading-7">
+              Whatever your budget, there is always a thoughtful way to make
+              someone feel special.
+            </p>
+
+          </div>
+
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:mt-12 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
+
+            {budgetOptions.map((budget) => (
+              <Link
+                key={budget.title}
+                href={budget.href}
+                className={`
+                  group relative overflow-hidden
+                  rounded-[1.35rem]
+                  border border-[#D8CBB8]
+                  ${budget.className}
+                  p-4
+                  shadow-[0_10px_30px_rgba(30,40,60,0.06)]
+                  transition duration-500
+                  hover:-translate-y-2
+                  hover:border-[#C9A85A]
+                  hover:shadow-[0_20px_45px_rgba(30,40,60,0.13)]
+                  active:scale-[0.98]
+                  sm:rounded-[1.6rem]
+                  sm:p-6
+                `}
+              >
+
+                <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/30 blur-2xl transition duration-500 group-hover:scale-150" />
+
+                <div className="relative">
+
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/65 text-2xl shadow-sm sm:h-14 sm:w-14 sm:text-3xl">
+                    {budget.emoji}
+                  </div>
+
+                  <h3 className="mt-5 text-sm font-bold text-[#16213E] sm:text-lg">
+                    {budget.title}
+                  </h3>
+
+                  <p className="mt-1 text-[10px] leading-4 text-[#526174] sm:text-xs sm:leading-5">
+                    {budget.subtitle}
+                  </p>
+
+                  <div className="mt-5 flex items-center justify-between">
+
+                    <span className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#A67822] sm:text-[10px]">
+                      Explore Gifts
+                    </span>
+
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#16213E] text-xs text-[#F4D58D] transition duration-300 group-hover:translate-x-1 sm:h-8 sm:w-8">
+                      →
+                    </span>
+
+                  </div>
+
+                </div>
+
+              </Link>
+            ))}
+
+          </div>
+
+          <div className="mt-7 text-center sm:mt-9">
+
+            <Link
+              href="/shop"
+              className="
+                inline-flex min-h-[45px] items-center justify-center
+                rounded-full
+                border border-[#16213E]/15
+                bg-white/70
+                px-6 py-3
+                text-[10px] font-semibold text-[#16213E]
+                shadow-sm
+                transition duration-300
+                hover:-translate-y-1
+                hover:border-[#C9A85A]
+                hover:bg-[#16213E]
+                hover:text-[#F4D58D]
+                active:scale-[0.98]
+                sm:text-xs
+              "
+            >
+              View All Gifts →
             </Link>
 
           </div>
@@ -742,8 +863,6 @@ export default function Home() {
 
           <div className="grid gap-9 text-center sm:grid-cols-2 md:grid-cols-4 md:text-left">
 
-            {/* BRAND */}
-
             <div>
 
               <p className="text-xl font-semibold tracking-[0.18em] text-[#F4D58D]">
@@ -761,8 +880,6 @@ export default function Home() {
 
             </div>
 
-            {/* QUICK LINKS */}
-
             <div>
 
               <h3 className="font-semibold text-[#F4D58D]">
@@ -771,46 +888,29 @@ export default function Home() {
 
               <div className="mt-4 space-y-2 text-[13px] text-[#D3DAE3] sm:mt-5 sm:space-y-3 sm:text-sm">
 
-                <Link
-                  href="/"
-                  className="block py-1 transition hover:text-[#63C7B8]"
-                >
+                <Link href="/" className="block py-1 transition hover:text-[#63C7B8]">
                   Home
                 </Link>
 
-                <Link
-                  href="/shop"
-                  className="block py-1 transition hover:text-[#63C7B8]"
-                >
+                <Link href="/shop" className="block py-1 transition hover:text-[#63C7B8]">
                   Shop
                 </Link>
 
-                <Link
-                  href="/categories"
-                  className="block py-1 transition hover:text-[#63C7B8]"
-                >
+                <Link href="/categories" className="block py-1 transition hover:text-[#63C7B8]">
                   Categories
                 </Link>
 
-                <Link
-                  href="/about"
-                  className="block py-1 transition hover:text-[#63C7B8]"
-                >
+                <Link href="/about" className="block py-1 transition hover:text-[#63C7B8]">
                   About Us
                 </Link>
 
-                <Link
-                  href="/contact"
-                  className="block py-1 transition hover:text-[#63C7B8]"
-                >
+                <Link href="/contact" className="block py-1 transition hover:text-[#63C7B8]">
                   Contact
                 </Link>
 
               </div>
 
             </div>
-
-            {/* HELP */}
 
             <div>
 
@@ -831,8 +931,6 @@ export default function Home() {
               </Link>
 
             </div>
-
-            {/* INSTAGRAM */}
 
             <div>
 
@@ -905,8 +1003,6 @@ export default function Home() {
 
           </div>
 
-          {/* FOOTER BOTTOM */}
-
           <div className="mt-10 border-t border-white/10 pt-6 sm:mt-12 sm:pt-7">
 
             <div className="flex flex-col items-center justify-between gap-2.5 text-center text-[10px] leading-5 text-[#AEB8C7] sm:text-xs md:flex-row md:gap-3">
@@ -936,7 +1032,7 @@ export default function Home() {
       ========================================================= */}
 
       <a
-        href="https://wa.me/919826368001?text=Hi%20Akarshan%20Gift%20Gallery%2C%20I%20want%20to%20know%20more%20about%20your%20gifts."
+        href="https://wa.me/919826368001?text=Hi%20Akarshan%20Gift%20Gallery%2C%20I%20want%20to%20know%20more%20about%20your%20gifts"
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Chat on WhatsApp"

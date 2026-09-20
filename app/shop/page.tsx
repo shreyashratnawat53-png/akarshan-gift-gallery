@@ -14,10 +14,19 @@ type Product = {
   description: string | null;
 };
 
+type BudgetFilter =
+  | "All"
+  | "under500"
+  | "500to1000"
+  | "1000to2000"
+  | "above2000";
+
 export default function ShopPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedBudget, setSelectedBudget] =
+    useState<BudgetFilter>("All");
   const [loading, setLoading] = useState(true);
   const [wishlist, setWishlist] = useState<string[]>([]);
 
@@ -28,7 +37,9 @@ export default function ShopPage() {
   const cleanProductName = (name: string) => {
     return name
       .replace(/Aakarshan Gift Gallery/gi, "")
+      .replace(/Akarshan Gift Gallery/gi, "")
       .replace(/Aakarshan/gi, "")
+      .replace(/Akarshan/gi, "")
       .replace(/\s{2,}/g, " ")
       .replace(/^[\s\-–—:|]+|[\s\-–—:|]+$/g, "")
       .trim();
@@ -129,6 +140,29 @@ export default function ShopPage() {
   }, [products]);
 
   // =========================================================
+  // BUDGET LABEL
+  // =========================================================
+
+  const budgetLabel = useMemo(() => {
+    switch (selectedBudget) {
+      case "under500":
+        return "Under ₹500";
+
+      case "500to1000":
+        return "₹500 – ₹1000";
+
+      case "1000to2000":
+        return "₹1000 – ₹2000";
+
+      case "above2000":
+        return "₹2000+";
+
+      default:
+        return "All Budgets";
+    }
+  }, [selectedBudget]);
+
+  // =========================================================
   // FILTER PRODUCTS
   // =========================================================
 
@@ -138,11 +172,13 @@ export default function ShopPage() {
     return products.filter((product) => {
       const displayName = cleanProductName(product.name);
 
+      // SEARCH
       const matchesSearch =
         displayName.toLowerCase().includes(text) ||
         product.category.toLowerCase().includes(text) ||
         (product.description ?? "").toLowerCase().includes(text);
 
+      // CATEGORY
       const productCategories = product.category
         .split(",")
         .map((item) => item.trim());
@@ -151,16 +187,61 @@ export default function ShopPage() {
         selectedCategory === "All" ||
         productCategories.includes(selectedCategory);
 
-      return matchesSearch && matchesCategory;
+      // BUDGET
+      const price = Number(product.price);
+
+      let matchesBudget = true;
+
+      switch (selectedBudget) {
+        case "under500":
+          matchesBudget = price < 500;
+          break;
+
+        case "500to1000":
+          matchesBudget = price >= 500 && price <= 1000;
+          break;
+
+        case "1000to2000":
+          matchesBudget = price > 1000 && price <= 2000;
+          break;
+
+        case "above2000":
+          matchesBudget = price > 2000;
+          break;
+
+        default:
+          matchesBudget = true;
+      }
+
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesBudget
+      );
     });
-  }, [products, search, selectedCategory]);
+  }, [
+    products,
+    search,
+    selectedCategory,
+    selectedBudget,
+  ]);
+
+  // =========================================================
+  // RESET FILTERS
+  // =========================================================
+
+  const resetFilters = () => {
+    setSearch("");
+    setSelectedCategory("All");
+    setSelectedBudget("All");
+  };
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#F8F3EA] text-[#16213E]">
 
-      {/* =========================================================
+      {/* =====================================================
           CLOSE BUTTON
-      ========================================================= */}
+      ===================================================== */}
 
       <Link
         href="/"
@@ -187,15 +268,15 @@ export default function ShopPage() {
         ×
       </Link>
 
-      {/* =========================================================
+      {/* =====================================================
           HERO
-      ========================================================= */}
+      ===================================================== */}
 
       <section className="px-4 pb-7 pt-28 sm:px-6 sm:pb-10 sm:pt-32">
         <div className="mx-auto max-w-7xl">
 
           <p className="text-[10px] font-semibold uppercase tracking-[0.45em] text-[#A67822] sm:text-xs sm:tracking-[0.5em]">
-            Aakarshan Gift Gallery
+            Gift Collection
           </p>
 
           <div className="mt-4 flex flex-col gap-5 md:mt-5 md:flex-row md:items-end md:justify-between">
@@ -231,11 +312,11 @@ export default function ShopPage() {
         </div>
       </section>
 
-      {/* =========================================================
-          SEARCH + CATEGORIES
-      ========================================================= */}
+      {/* =====================================================
+          SEARCH
+      ===================================================== */}
 
-      <section className="px-4 pb-8 sm:px-6">
+      <section className="px-4 pb-5 sm:px-6">
         <div className="mx-auto max-w-7xl">
 
           <div className="relative mx-auto max-w-3xl">
@@ -296,16 +377,132 @@ export default function ShopPage() {
 
           </div>
 
-          <div
-            className="
-              mt-5
-              -mx-1
-              flex gap-2
-              overflow-x-auto
-              px-1 pb-2
-              scrollbar-hide
-            "
-          >
+        </div>
+      </section>
+
+      {/* =====================================================
+          BUDGET FILTER
+      ===================================================== */}
+
+      <section className="px-4 pb-5 sm:px-6">
+        <div className="mx-auto max-w-7xl">
+
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.3em] text-[#A67822] sm:text-xs">
+              Shop By Budget
+            </p>
+
+            {selectedBudget !== "All" && (
+              <button
+                type="button"
+                onClick={() => setSelectedBudget("All")}
+                className="text-[10px] font-medium text-[#687386] underline underline-offset-2 sm:text-xs"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 scrollbar-hide">
+
+            <button
+              type="button"
+              onClick={() => setSelectedBudget("All")}
+              aria-pressed={selectedBudget === "All"}
+              className={`
+                min-h-10 shrink-0 rounded-full border px-4 py-2 text-xs font-medium transition active:scale-95
+                ${
+                  selectedBudget === "All"
+                    ? "border-[#16213E] bg-[#16213E] text-[#F4D58D] shadow-md"
+                    : "border-[#D8CBB8] bg-white text-[#526174] hover:border-[#C9A85A]"
+                }
+              `}
+            >
+              All Budgets
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedBudget("under500")}
+              aria-pressed={selectedBudget === "under500"}
+              className={`
+                min-h-10 shrink-0 rounded-full border px-4 py-2 text-xs font-medium transition active:scale-95
+                ${
+                  selectedBudget === "under500"
+                    ? "border-[#16213E] bg-[#16213E] text-[#F4D58D] shadow-md"
+                    : "border-[#D8CBB8] bg-white text-[#526174] hover:border-[#C9A85A]"
+                }
+              `}
+            >
+              🎁 Under ₹500
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedBudget("500to1000")}
+              aria-pressed={selectedBudget === "500to1000"}
+              className={`
+                min-h-10 shrink-0 rounded-full border px-4 py-2 text-xs font-medium transition active:scale-95
+                ${
+                  selectedBudget === "500to1000"
+                    ? "border-[#16213E] bg-[#16213E] text-[#F4D58D] shadow-md"
+                    : "border-[#D8CBB8] bg-white text-[#526174] hover:border-[#C9A85A]"
+                }
+              `}
+            >
+              ✨ ₹500 – ₹1000
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedBudget("1000to2000")}
+              aria-pressed={selectedBudget === "1000to2000"}
+              className={`
+                min-h-10 shrink-0 rounded-full border px-4 py-2 text-xs font-medium transition active:scale-95
+                ${
+                  selectedBudget === "1000to2000"
+                    ? "border-[#16213E] bg-[#16213E] text-[#F4D58D] shadow-md"
+                    : "border-[#D8CBB8] bg-white text-[#526174] hover:border-[#C9A85A]"
+                }
+              `}
+            >
+              💝 ₹1000 – ₹2000
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedBudget("above2000")}
+              aria-pressed={selectedBudget === "above2000"}
+              className={`
+                min-h-10 shrink-0 rounded-full border px-4 py-2 text-xs font-medium transition active:scale-95
+                ${
+                  selectedBudget === "above2000"
+                    ? "border-[#16213E] bg-[#16213E] text-[#F4D58D] shadow-md"
+                    : "border-[#D8CBB8] bg-white text-[#526174] hover:border-[#C9A85A]"
+                }
+              `}
+            >
+              👑 ₹2000+
+            </button>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* =====================================================
+          CATEGORIES
+      ===================================================== */}
+
+      <section className="px-4 pb-8 sm:px-6">
+        <div className="mx-auto max-w-7xl">
+
+          <p className="mb-3 text-[9px] font-semibold uppercase tracking-[0.3em] text-[#A67822] sm:text-xs">
+            Shop By Category
+          </p>
+
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 scrollbar-hide">
+
             {categories.map((category) => (
               <button
                 key={category}
@@ -332,14 +529,15 @@ export default function ShopPage() {
                 {category}
               </button>
             ))}
+
           </div>
 
         </div>
       </section>
 
-      {/* =========================================================
+      {/* =====================================================
           PRODUCTS
-      ========================================================= */}
+      ===================================================== */}
 
       <section className="border-y border-[#D7C7B2] bg-[#F3EDE3] px-3 py-10 sm:px-6 sm:py-12">
         <div className="mx-auto max-w-7xl">
@@ -353,7 +551,9 @@ export default function ShopPage() {
               </p>
 
               <h2 className="mt-2 truncate text-xl font-semibold sm:text-3xl">
-                {selectedCategory === "All"
+                {selectedBudget !== "All"
+                  ? budgetLabel
+                  : selectedCategory === "All"
                   ? "Find Something Special"
                   : selectedCategory}
               </h2>
@@ -372,7 +572,9 @@ export default function ShopPage() {
 
           </div>
 
-          {/* LOADING */}
+          {/* =================================================
+              LOADING
+          ================================================= */}
 
           {loading ? (
 
@@ -437,11 +639,11 @@ export default function ShopPage() {
                 );
 
                 const whatsappText = encodeURIComponent(
-                  `Hi Aakarshan Gift Gallery, I am interested in ${displayName}. Please share more details about this product.`
+                  `Hi Akarshan Gift Gallery, I am interested in ${displayName}. Please share more details about this product.`
                 );
 
                 const customizeText = encodeURIComponent(
-                  `Hi Aakarshan Gift Gallery, I want to customize the ${displayName}. Please help me with customization options.`
+                  `Hi Akarshan Gift Gallery, I want to customize the ${displayName}. Please help me with customization options.`
                 );
 
                 return (
@@ -462,7 +664,9 @@ export default function ShopPage() {
                     "
                   >
 
-                    {/* PRODUCT */}
+                    {/* =================================================
+                        PRODUCT
+                    ================================================= */}
 
                     <Link
                       href={`/product/${product.id}`}
@@ -573,37 +777,18 @@ export default function ShopPage() {
                           </p>
                         )}
 
-                        {/* RATING */}
-
-                        <div className="mt-2.5 sm:mt-3">
-
-                          <span
-                            className="
-                              inline-flex
-                              rounded-full
-                              bg-[#F4D58D]
-                              px-2 py-1
-                              text-[9px]
-                              font-bold
-                              text-[#16213E]
-                              sm:text-xs
-                            "
-                          >
-                            ★ 4.8
-                          </span>
-
-                        </div>
+                        {/* NO FAKE RATING */}
 
                         {/* PRICE */}
 
                         <div
                           className="
-                            mt-2.5
+                            mt-3
                             flex flex-wrap
                             items-baseline
                             gap-x-1.5
                             gap-y-1
-                            sm:mt-3 sm:gap-2
+                            sm:mt-4 sm:gap-2
                           "
                         >
 
@@ -643,7 +828,9 @@ export default function ShopPage() {
 
                     </Link>
 
-                    {/* WISHLIST */}
+                    {/* =================================================
+                        WISHLIST
+                    ================================================= */}
 
                     <button
                       type="button"
@@ -691,7 +878,9 @@ export default function ShopPage() {
                       </span>
                     </button>
 
-                    {/* CUSTOMIZATION */}
+                    {/* =================================================
+                        CUSTOMIZATION
+                    ================================================= */}
 
                     {customizable && (
                       <div className="px-3 pb-2.5 sm:px-4 sm:pb-3">
@@ -724,7 +913,9 @@ export default function ShopPage() {
                       </div>
                     )}
 
-                    {/* VIEW PRODUCT */}
+                    {/* =================================================
+                        VIEW PRODUCT
+                    ================================================= */}
 
                     <div className="px-3 pb-3 sm:px-4 sm:pb-4">
 
@@ -757,7 +948,9 @@ export default function ShopPage() {
 
                     </div>
 
-                    {/* WHATSAPP */}
+                    {/* =================================================
+                        WHATSAPP
+                    ================================================= */}
 
                     <div className="px-3 pb-3 sm:px-4 sm:pb-4">
 
@@ -817,15 +1010,12 @@ export default function ShopPage() {
               </h3>
 
               <p className="mt-2 text-xs text-[#687386] sm:mt-3 sm:text-sm">
-                We couldn&apos;t find any products matching your search.
+                We couldn&apos;t find any products matching your filters.
               </p>
 
               <button
                 type="button"
-                onClick={() => {
-                  setSearch("");
-                  setSelectedCategory("All");
-                }}
+                onClick={resetFilters}
                 className="
                   mt-5
                   min-h-11
@@ -846,14 +1036,15 @@ export default function ShopPage() {
               </button>
 
             </div>
+
           )}
 
         </div>
       </section>
 
-      {/* =========================================================
+      {/* =====================================================
           CUSTOMIZATION CTA
-      ========================================================= */}
+      ===================================================== */}
 
       <section className="px-4 py-14 sm:px-6 sm:py-20">
 
@@ -884,7 +1075,7 @@ export default function ShopPage() {
           </p>
 
           <a
-            href="https://wa.me/919826368001?text=Hi%20Aakarshan%2C%20I%20want%20to%20customize%20a%20gift"
+            href="https://wa.me/919826368001?text=Hi%20Akarshan%2C%20I%20want%20to%20customize%20a%20gift"
             target="_blank"
             rel="noopener noreferrer"
             className="
@@ -915,9 +1106,9 @@ export default function ShopPage() {
 
       </section>
 
-      {/* =========================================================
+      {/* =====================================================
           BOTTOM
-      ========================================================= */}
+      ===================================================== */}
 
       <section
         className="
@@ -929,7 +1120,7 @@ export default function ShopPage() {
       >
 
         <p className="text-[9px] uppercase tracking-[0.45em] text-[#A67822] sm:text-xs sm:tracking-[0.5em]">
-          Aakarshan Gift Gallery
+          Gift Gallery
         </p>
 
         <h2 className="mt-4 text-2xl font-semibold sm:mt-5 sm:text-3xl md:text-5xl">
