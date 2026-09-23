@@ -1,1078 +1,672 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
-const categories = [
-  {
-    name: "Birthday",
-    slug: "birthday",
-    description: "Gifts made for their special day",
-    image: "/images/birthday.png",
-  },
-  {
-    name: "Anniversary",
-    slug: "anniversary",
-    description: "Celebrate love and togetherness",
-    image: "/images/anniversary.jpeg",
-  },
-  {
-    name: "Gift Hampers",
-    slug: "gift-hampers",
-    description: "Beautiful gifts, beautifully packed",
-    image: "/images/hampers.jpeg",
-  },
-  {
-    name: "Personalized",
-    slug: "personalized-gifts",
-    description: "Make it truly theirs",
-    image: "/images/personalised.jpeg",
-  },
+type BudgetFilter =
+  | "all"
+  | "under500"
+  | "500to1000"
+  | "1000to2000"
+  | "above2000";
+
+type Product = {
+  id: string | number;
+  name: string;
+  category: string | null;
+  price: number | string;
+  oldprice?: number | string | null;
+  image: string | null;
+  description?: string | null;
+  customizable?: boolean | null;
+};
+
+const BUDGET_OPTIONS: {
+  value: BudgetFilter;
+  label: string;
+}[] = [
+  { value: "all", label: "All Prices" },
+  { value: "under500", label: "Under ₹500" },
+  { value: "500to1000", label: "₹500 – ₹1000" },
+  { value: "1000to2000", label: "₹1000 – ₹2000" },
+  { value: "above2000", label: "₹2000+" },
 ];
 
-const features = [
-  {
-    title: "Premium Quality",
-    text: "Thoughtfully selected gifts.",
-    icon: "✦",
-  },
-  {
-    title: "Personalized Gifts",
-    text: "Make it truly special.",
-    icon: "♡",
-  },
-  {
-    title: "Pan India",
-    text: "Meaningful gifts, closer.",
-    icon: "⌖",
-  },
-  {
-    title: "Since 2006",
-    text: "Years of trust & smiles.",
-    icon: "★",
-  },
-];
+function cleanProductName(name: string) {
+  return name
+    .replace(/Aakarshan Gift Gallery/gi, "")
+    .replace(/Akarshan Gift Gallery/gi, "")
+    .replace(/\bAakarshan\b/gi, "")
+    .replace(/\bAkarshan\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-const cardColors = [
-  "bg-[#F8E1D8]",
-  "bg-[#F4DCE5]",
-  "bg-[#F4EACF]",
-  "bg-[#DCEBE6]",
-];
+function getPrice(value: number | string | null | undefined) {
+  const price = Number(value);
+  return Number.isFinite(price) ? price : 0;
+}
 
-const budgetOptions = [
-  {
-    title: "Under ₹500",
-    subtitle: "Thoughtful gifts",
-    emoji: "🎁",
-    href: "/shop?budget=under500",
-    className: "bg-[#F8E1D8]",
-  },
-  {
-    title: "₹500 – ₹1000",
-    subtitle: "Beautiful surprises",
-    emoji: "✨",
-    href: "/shop?budget=500to1000",
-    className: "bg-[#DCEBE6]",
-  },
-  {
-    title: "₹1000 – ₹2000",
-    subtitle: "Premium gifting",
-    emoji: "💝",
-    href: "/shop?budget=1000to2000",
-    className: "bg-[#F4EACF]",
-  },
-  {
-    title: "₹2000+",
-    subtitle: "Luxury moments",
-    emoji: "👑",
-    href: "/shop?budget=above2000",
-    className: "bg-[#E6DCEB]",
-  },
-];
+function matchesBudget(price: number, budget: BudgetFilter) {
+  switch (budget) {
+    case "under500":
+      return price < 500;
 
-export default function Home() {
-  const gifts = Array.from({ length: 18 });
+    case "500to1000":
+      return price >= 500 && price <= 1000;
+
+    case "1000to2000":
+      return price > 1000 && price <= 2000;
+
+    case "above2000":
+      return price > 2000;
+
+    case "all":
+    default:
+      return true;
+  }
+}
+
+function getDiscountPercentage(
+  price: number | string,
+  oldPrice: number | string | null | undefined
+) {
+  const current = getPrice(price);
+  const old = getPrice(oldPrice);
+
+  if (!old || old <= current) return 0;
+
+  return Math.round(((old - current) / old) * 100);
+}
+
+export default function ShopPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedBudget, setSelectedBudget] =
+    useState<BudgetFilter>("all");
+
+  const [wishlist, setWishlist] = useState<string[]>([]);
+
+  /*
+    ---------------------------------------------------------
+    READ BUDGET FROM HOMEPAGE URL
+    ---------------------------------------------------------
+  */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const budget = params.get("budget") as BudgetFilter | null;
+
+    if (
+      budget === "under500" ||
+      budget === "500to1000" ||
+      budget === "1000to2000" ||
+      budget === "above2000"
+    ) {
+      setSelectedBudget(budget);
+    } else {
+      setSelectedBudget("all");
+    }
+  }, []);
+
+  /*
+    ---------------------------------------------------------
+    LOAD PRODUCTS FROM SUPABASE
+    ---------------------------------------------------------
+  */
+  useEffect(() => {
+    async function loadProducts() {
+      try {
+        setLoading(true);
+
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .order("id", { ascending: false });
+
+        if (error) {
+          console.error("PRODUCT FETCH ERROR:", error);
+          setProducts([]);
+          return;
+        }
+
+        setProducts((data || []) as Product[]);
+      } catch (error) {
+        console.error("SHOP ERROR:", error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProducts();
+  }, []);
+
+  /*
+    ---------------------------------------------------------
+    LOAD WISHLIST
+    ---------------------------------------------------------
+  */
+  useEffect(() => {
+    try {
+      const savedWishlist = localStorage.getItem("akarshan-wishlist");
+
+      if (savedWishlist) {
+        const parsed = JSON.parse(savedWishlist);
+
+        if (Array.isArray(parsed)) {
+          setWishlist(parsed.map(String));
+        }
+      }
+    } catch (error) {
+      console.error("WISHLIST LOAD ERROR:", error);
+    }
+  }, []);
+
+  /*
+    ---------------------------------------------------------
+    SAVE WISHLIST
+    ---------------------------------------------------------
+  */
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "akarshan-wishlist",
+        JSON.stringify(wishlist)
+      );
+    } catch (error) {
+      console.error("WISHLIST SAVE ERROR:", error);
+    }
+  }, [wishlist]);
+
+  /*
+    ---------------------------------------------------------
+    GET CATEGORIES
+    ---------------------------------------------------------
+  */
+  const categories = useMemo(() => {
+    const categorySet = new Set<string>();
+
+    products.forEach((product) => {
+      if (!product.category) return;
+
+      product.category
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .forEach((category) => {
+          categorySet.add(category);
+        });
+    });
+
+    return ["All", ...Array.from(categorySet).sort()];
+  }, [products]);
+
+  /*
+    ---------------------------------------------------------
+    FILTER PRODUCTS
+    ---------------------------------------------------------
+  */
+  const filteredProducts = useMemo(() => {
+    const searchTerm = search.trim().toLowerCase();
+
+    return products.filter((product) => {
+      const productPrice = getPrice(product.price);
+
+      /*
+        SEARCH FILTER
+      */
+      const matchesSearch =
+        !searchTerm ||
+        cleanProductName(product.name)
+          .toLowerCase()
+          .includes(searchTerm) ||
+        (product.description || "")
+          .toLowerCase()
+          .includes(searchTerm) ||
+        (product.category || "")
+          .toLowerCase()
+          .includes(searchTerm);
+
+      /*
+        CATEGORY FILTER
+      */
+      const matchesCategory =
+        selectedCategory === "All" ||
+        (product.category || "")
+          .split(",")
+          .map((item) => item.trim().toLowerCase())
+          .includes(selectedCategory.toLowerCase());
+
+      /*
+        BUDGET FILTER
+      */
+      const matchesSelectedBudget = matchesBudget(
+        productPrice,
+        selectedBudget
+      );
+
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesSelectedBudget
+      );
+    });
+  }, [
+    products,
+    search,
+    selectedCategory,
+    selectedBudget,
+  ]);
+
+  /*
+    ---------------------------------------------------------
+    RESET FILTERS
+    ---------------------------------------------------------
+  */
+  function resetFilters() {
+    setSearch("");
+    setSelectedCategory("All");
+    setSelectedBudget("all");
+
+    window.history.replaceState(
+      {},
+      "",
+      "/shop"
+    );
+  }
+
+  /*
+    ---------------------------------------------------------
+    CHANGE BUDGET
+    ---------------------------------------------------------
+  */
+  function handleBudgetChange(budget: BudgetFilter) {
+    setSelectedBudget(budget);
+
+    const url =
+      budget === "all"
+        ? "/shop"
+        : `/shop?budget=${budget}`;
+
+    window.history.replaceState({}, "", url);
+  }
+
+  /*
+    ---------------------------------------------------------
+    WISHLIST
+    ---------------------------------------------------------
+  */
+  function toggleWishlist(productId: string | number) {
+    const id = String(productId);
+
+    setWishlist((current) => {
+      if (current.includes(id)) {
+        return current.filter((item) => item !== id);
+      }
+
+      return [...current, id];
+    });
+  }
+
+  /*
+    ---------------------------------------------------------
+    WHATSAPP
+    ---------------------------------------------------------
+  */
+  function openWhatsApp(product: Product) {
+    const productName = cleanProductName(product.name);
+    const price = getPrice(product.price);
+
+    const message = encodeURIComponent(
+      `Hi Akarshan Gift Gallery! 👋\n\nI am interested in this product:\n\n🎁 ${productName}\n💰 Price: ₹${price}\n\nPlease share more details.`
+    );
+
+    window.open(
+      `https://wa.me/919826368001?text=${message}`,
+      "_blank"
+    );
+  }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#F8F3EA]">
+    <main className="min-h-screen bg-[#F8F3EA] text-[#16213E]">
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
 
-      {/* =========================================================
-          FALLING 3D GIFTS
-      ========================================================= */}
+      <section className="border-b border-[#D8CBB8] bg-[#16213E] px-4 pb-8 pt-28 sm:px-6 sm:pb-10">
+        <div className="mx-auto max-w-7xl">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.45em] text-[#F4D58D] sm:text-xs sm:tracking-[0.6em]">
+            Akarshan Gift Gallery
+          </p>
 
-      <div className="pointer-events-none fixed inset-0 z-[9999] overflow-hidden">
-        {gifts.map((_, index) => (
-          <div
-            key={index}
-            className="falling-gift"
-            style={{
-              left: `${(index * 17.3) % 100}%`,
-              animationDelay: `${(index % 9) * 0.16}s`,
-              animationDuration: `${2.7 + (index % 5) * 0.35}s`,
-            }}
-          >
-            <div
-              className="gift-3d"
-              style={{
-                transform: `scale(${0.65 + (index % 4) * 0.13})`,
-              }}
-            >
-              <div className="gift-box-body">
-                <div className="gift-front" />
-                <div className="gift-side" />
-                <div className="gift-top" />
-                <div className="gift-ribbon-vertical" />
-                <div className="gift-ribbon-horizontal" />
-              </div>
+          <div className="mt-3 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h1 className="text-3xl font-semibold text-white sm:text-5xl">
+                Gift Collection
+              </h1>
 
-              <div className="gift-lid">
-                <div className="gift-lid-top" />
-                <div className="gift-lid-front" />
-                <div className="gift-lid-side" />
-                <div className="gift-bow-left" />
-                <div className="gift-bow-right" />
-                <div className="gift-bow-center" />
-              </div>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#C8D0DC] sm:text-base">
+                Discover thoughtful gifts for birthdays, anniversaries,
+                celebrations and every special moment.
+              </p>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* =========================================================
-          HERO
-      ========================================================= */}
-
-      <section
-        className="
-          relative flex min-h-[700px] items-center justify-center
-          overflow-hidden bg-cover bg-center
-          px-4 pb-10 pt-24
-          sm:min-h-[760px] sm:px-5 sm:pt-28
-          md:min-h-[88vh] md:px-8 md:pt-24
-        "
-        style={{
-          backgroundImage: "url('/images/hero-image.png')",
-        }}
-      >
-        <div className="absolute inset-0 bg-[#071426]/50" />
-
-        <div className="absolute inset-0 bg-gradient-to-b from-[#071426]/65 via-[#071426]/10 to-[#071426]/80" />
-
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#071426]/40 to-transparent" />
-
-        <div className="relative z-10 mx-auto w-full max-w-5xl px-1 text-center">
-
-          <p className="text-[8px] font-semibold uppercase tracking-[0.32em] text-[#F4D58D] sm:text-xs sm:tracking-[0.55em]">
-            Since 2006 · Crafted With Love
-          </p>
-
-          <h1
-            className="
-              mt-4 text-[2.7rem] font-light leading-none tracking-[0.08em] text-white
-              drop-shadow-2xl
-              sm:text-6xl
-              md:text-8xl md:tracking-[0.16em]
-            "
-          >
-            AKARSHAN
-          </h1>
-
-          <p className="mt-2 text-[9px] font-semibold uppercase tracking-[0.32em] text-[#F4D58D] sm:text-sm sm:tracking-[0.5em]">
-            GIFT GALLERY
-          </p>
-
-          <div className="mx-auto mt-5 h-[2px] w-14 rounded-full bg-[#F4D58D] sm:mt-6 sm:w-20" />
-
-          <h2
-            className="
-              mt-6 text-[2.35rem] font-semibold leading-[1.02] text-white
-              drop-shadow-[0_4px_18px_rgba(0,0,0,0.7)]
-              sm:mt-7 sm:text-5xl
-              md:text-7xl
-            "
-          >
-            Every Gift Tells
-            <br />
-            <span className="text-[#63C7B8]">
-              A Story.
-            </span>
-          </h2>
-
-          <p className="mx-auto mt-5 max-w-xl text-[13px] font-medium leading-6 text-white drop-shadow-lg sm:text-lg sm:leading-7 md:text-xl">
-            More Than a Gift.
-            <br />
-            A Memory That Lasts Forever.
-          </p>
-
-          <div className="mx-auto mt-7 flex w-full max-w-sm flex-col gap-3 sm:mt-8 sm:max-w-none sm:flex-row sm:justify-center">
-
-            <Link
-              href="/shop"
-              className="
-                inline-flex min-h-[50px] w-full items-center justify-center
-                rounded-full bg-[#E85D75]
-                px-5 py-3
-                text-[13px] font-semibold text-white
-                shadow-[0_12px_35px_rgba(232,93,117,0.35)]
-                transition duration-300
-                hover:-translate-y-1 hover:bg-[#D94B65]
-                active:scale-[0.98]
-                sm:min-h-12 sm:w-auto sm:px-8 sm:py-3.5 sm:text-sm
-              "
-            >
-              🎁 Explore Collection
-            </Link>
 
             <Link
               href="/categories"
-              className="
-                inline-flex min-h-[50px] w-full items-center justify-center
-                rounded-full border border-[#F4D58D]
-                bg-[#16213E]/85
-                px-5 py-3
-                text-[13px] font-semibold text-[#F4D58D]
-                backdrop-blur-md
-                transition duration-300
-                hover:-translate-y-1 hover:bg-[#F4D58D]
-                hover:text-[#16213E]
-                active:scale-[0.98]
-                sm:min-h-12 sm:w-auto sm:px-8 sm:py-3.5 sm:text-sm
-              "
+              className="inline-flex w-fit rounded-full border border-[#F4D58D]/50 px-5 py-2.5 text-xs font-semibold text-[#F4D58D] transition hover:bg-[#F4D58D] hover:text-[#16213E]"
             >
-              Find the Perfect Gift
+              Browse Categories →
             </Link>
-
           </div>
-
-          <p className="mt-5 text-[11px] font-medium text-white/90 sm:mt-6 sm:text-sm">
-            ✨ Serving Smiles Since 2006
-          </p>
-
         </div>
       </section>
 
-      {/* =========================================================
-          THE ART OF GIFTING
-      ========================================================= */}
+      {/* =====================================================
+          FILTERS
+      ===================================================== */}
 
-      <section className="relative overflow-hidden bg-[#071426] px-4 py-14 sm:px-6 sm:py-20 md:py-24">
+      <section className="sticky top-0 z-40 border-b border-[#D8CBB8] bg-[#F8F3EA]/95 px-4 py-4 backdrop-blur-xl sm:px-6">
+        <div className="mx-auto max-w-7xl">
+          {/* SEARCH */}
+          <div className="relative">
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search gifts..."
+              className="w-full rounded-full border border-[#D8CBB8] bg-white px-5 py-3.5 pr-12 text-sm outline-none transition focus:border-[#C9A85A] focus:ring-2 focus:ring-[#C9A85A]/10"
+            />
 
-        <div className="pointer-events-none absolute -left-32 top-10 h-80 w-80 rounded-full bg-[#63C7B8]/10 blur-[100px]" />
-        <div className="pointer-events-none absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-[#F4D58D]/10 blur-[110px]" />
-        <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#E85D75]/5 blur-[100px]" />
-
-        <div className="pointer-events-none absolute left-[8%] top-[18%] text-[#F4D58D]/50">
-          ✦
-        </div>
-
-        <div className="pointer-events-none absolute right-[12%] top-[25%] text-[#63C7B8]/50">
-          ✧
-        </div>
-
-        <div className="pointer-events-none absolute bottom-[18%] left-[18%] text-white/20">
-          ✦
-        </div>
-
-        <div className="pointer-events-none absolute bottom-[25%] right-[20%] text-[#F4D58D]/30">
-          ·
-        </div>
-
-        <div className="relative mx-auto max-w-7xl">
-
-          <div className="text-center">
-
-            <p className="text-[9px] font-semibold uppercase tracking-[0.45em] text-[#F4D58D] sm:text-xs sm:tracking-[0.6em]">
-              The Art of Gifting
-            </p>
-
-            <h2 className="mt-4 text-[2rem] font-light leading-tight text-white sm:text-5xl md:text-6xl">
-              Some moments
-              <br />
-              <span className="font-semibold text-[#F4D58D]">
-                deserve more.
-              </span>
-            </h2>
-
-            <p className="mx-auto mt-5 max-w-2xl text-[13px] leading-6 text-[#C8D0DC] sm:text-base sm:leading-7">
-              It is not about how big the gift is.
-              <br className="sm:hidden" />
-              {" "}It is about how special they feel when they receive it.
-            </p>
-
+            <span className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-lg">
+              🔍
+            </span>
           </div>
 
-          <div className="relative mx-auto mt-10 max-w-5xl sm:mt-14">
-
-            <div className="pointer-events-none absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#F4D58D]/10 sm:h-72 sm:w-72" />
-
-            <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#63C7B8]/10 sm:h-[22rem] sm:w-[22rem]" />
-
-            <div className="relative mx-auto flex min-h-[360px] items-center justify-center sm:min-h-[430px]">
-
-              <div
-                className="
-                  absolute left-0 top-8 z-20
-                  hidden w-40 rotate-[-7deg]
-                  rounded-2xl border border-white/10
-                  bg-white/[0.06] p-4
-                  shadow-[0_20px_50px_rgba(0,0,0,0.25)]
-                  backdrop-blur-xl
-                  sm:block
-                  md:w-48
-                "
+          {/* CATEGORY FILTER */}
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+            {categories.map((category) => (
+              <button
+                key={category}
+                type="button"
+                onClick={() => setSelectedCategory(category)}
+                className={`whitespace-nowrap rounded-full border px-4 py-2 text-[11px] font-semibold transition ${
+                  selectedCategory === category
+                    ? "border-[#16213E] bg-[#16213E] text-[#F4D58D]"
+                    : "border-[#D8CBB8] bg-white text-[#526174] hover:border-[#C9A85A]"
+                }`}
               >
-                <div className="text-2xl">🎂</div>
+                {category}
+              </button>
+            ))}
+          </div>
 
-                <p className="mt-3 text-[9px] uppercase tracking-[0.25em] text-[#63C7B8]">
-                  For Their Day
-                </p>
-
-                <p className="mt-1 text-sm font-semibold text-white">
-                  Make birthdays unforgettable.
-                </p>
-              </div>
-
-              <div
-                className="
-                  absolute right-0 top-16 z-20
-                  hidden w-40 rotate-[7deg]
-                  rounded-2xl border border-white/10
-                  bg-white/[0.06] p-4
-                  shadow-[0_20px_50px_rgba(0,0,0,0.25)]
-                  backdrop-blur-xl
-                  sm:block
-                  md:w-48
-                "
+          {/* BUDGET FILTER */}
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+            {BUDGET_OPTIONS.map((budget) => (
+              <button
+                key={budget.value}
+                type="button"
+                onClick={() =>
+                  handleBudgetChange(budget.value)
+                }
+                className={`whitespace-nowrap rounded-full border px-4 py-2 text-[11px] font-semibold transition ${
+                  selectedBudget === budget.value
+                    ? "border-[#E85D75] bg-[#E85D75] text-white"
+                    : "border-[#D8CBB8] bg-white text-[#526174] hover:border-[#E85D75]"
+                }`}
               >
-                <div className="text-2xl">❤️</div>
+                {budget.label}
+              </button>
+            ))}
+          </div>
 
-                <p className="mt-3 text-[9px] uppercase tracking-[0.25em] text-[#F4D58D]">
-                  For Someone Special
-                </p>
+          {/* ACTIVE FILTER INFO */}
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-[#526174]">
+              Showing{" "}
+              <span className="font-bold text-[#16213E]">
+                {filteredProducts.length}
+              </span>{" "}
+              {filteredProducts.length === 1
+                ? "gift"
+                : "gifts"}
+            </p>
 
-                <p className="mt-1 text-sm font-semibold text-white">
-                  Say what words cannot.
-                </p>
-              </div>
-
-              <div
-                className="
-                  absolute bottom-3 left-[4%] z-20
-                  hidden w-40 rotate-[5deg]
-                  rounded-2xl border border-white/10
-                  bg-white/[0.06] p-4
-                  shadow-[0_20px_50px_rgba(0,0,0,0.25)]
-                  backdrop-blur-xl
-                  sm:block
-                "
+            {(search ||
+              selectedCategory !== "All" ||
+              selectedBudget !== "all") && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="w-fit rounded-full border border-[#16213E]/20 bg-white px-4 py-2 text-[10px] font-semibold text-[#16213E] transition hover:border-[#E85D75] hover:text-[#E85D75]"
               >
-                <div className="text-2xl">✨</div>
+                Reset Filters
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
 
-                <p className="mt-3 text-[9px] uppercase tracking-[0.25em] text-[#E85D75]">
-                  Just Because
-                </p>
+      {/* =====================================================
+          PRODUCTS
+      ===================================================== */}
 
-                <p className="mt-1 text-sm font-semibold text-white">
-                  The sweetest surprises need no reason.
-                </p>
-              </div>
-
-              <div
-                className="
-                  absolute bottom-6 right-[4%] z-20
-                  hidden w-40 rotate-[-5deg]
-                  rounded-2xl border border-white/10
-                  bg-white/[0.06] p-4
-                  shadow-[0_20px_50px_rgba(0,0,0,0.25)]
-                  backdrop-blur-xl
-                  sm:block
-                "
-              >
-                <div className="text-2xl">🎁</div>
-
-                <p className="mt-3 text-[9px] uppercase tracking-[0.25em] text-[#63C7B8]">
-                  Made For Them
-                </p>
-
-                <p className="mt-1 text-sm font-semibold text-white">
-                  Thoughtful. Personal. Beautiful.
-                </p>
-              </div>
-
-              <div className="relative z-10">
-
-                <div className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F4D58D]/10 blur-[55px] sm:h-64 sm:w-64" />
-
+      <section className="px-4 py-10 sm:px-6 sm:py-14">
+        <div className="mx-auto max-w-7xl">
+          {loading ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, index) => (
                 <div
-                  className="
-                    relative flex h-52 w-52 items-center justify-center
-                    rounded-full
-                    border border-[#F4D58D]/30
-                    bg-gradient-to-br from-[#182846] via-[#101D35] to-[#071426]
-                    shadow-[0_0_80px_rgba(244,213,141,0.12)]
-                    sm:h-64 sm:w-64
-                  "
+                  key={index}
+                  className="overflow-hidden rounded-2xl border border-[#D8CBB8] bg-white"
                 >
+                  <div className="aspect-square animate-pulse bg-[#E7DED2]" />
 
-                  <div className="absolute inset-4 rounded-full border border-[#F4D58D]/10 sm:inset-5" />
+                  <div className="space-y-3 p-4">
+                    <div className="h-4 animate-pulse rounded bg-[#E7DED2]" />
+                    <div className="h-3 w-2/3 animate-pulse rounded bg-[#E7DED2]" />
+                    <div className="h-5 w-1/2 animate-pulse rounded bg-[#E7DED2]" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="rounded-3xl border border-[#D8CBB8] bg-white px-6 py-16 text-center">
+              <div className="text-5xl">🎁</div>
 
-                  <div className="text-center">
+              <h2 className="mt-5 text-2xl font-semibold text-[#16213E]">
+                No gifts found
+              </h2>
 
-                    <div className="text-6xl drop-shadow-[0_8px_25px_rgba(244,213,141,0.25)] sm:text-7xl">
-                      🎁
+              <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#526174]">
+                We could not find any products matching your current
+                search or filters.
+              </p>
+
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="mt-6 rounded-full bg-[#16213E] px-6 py-3 text-xs font-semibold text-[#F4D58D] transition hover:bg-[#223356]"
+              >
+                View All Gifts
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
+              {filteredProducts.map((product) => {
+                const productId = String(product.id);
+                const productName = cleanProductName(
+                  product.name
+                );
+
+                const price = getPrice(product.price);
+                const oldPrice = getPrice(product.oldprice);
+
+                const discount = getDiscountPercentage(
+                  price,
+                  product.oldprice
+                );
+
+                const isWishlisted =
+                  wishlist.includes(productId);
+
+                return (
+                  <article
+                    key={productId}
+                    className="group relative flex h-full flex-col overflow-hidden rounded-[1.25rem] border border-[#D8CBB8] bg-white shadow-[0_10px_30px_rgba(30,40,60,0.06)] transition duration-500 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(30,40,60,0.12)]"
+                  >
+                    {/* IMAGE */}
+                    <div className="relative aspect-square overflow-hidden bg-[#F4EEE5]">
+                      <Link
+                        href={`/product/${encodeURIComponent(
+                          productId
+                        )}`}
+                        className="block h-full w-full"
+                      >
+                        {product.image ? (
+                          <img
+                            src={product.image}
+                            alt={productName}
+                            className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-5xl">
+                            🎁
+                          </div>
+                        )}
+                      </Link>
+
+                      {/* DISCOUNT */}
+                      {discount > 0 && (
+                        <span className="absolute left-2.5 top-2.5 rounded-full bg-[#E85D75] px-2.5 py-1 text-[9px] font-bold text-white sm:left-3 sm:top-3 sm:text-[10px]">
+                          {discount}% OFF
+                        </span>
+                      )}
+
+                      {/* WISHLIST */}
+                      <button
+                        type="button"
+                        aria-label={
+                          isWishlisted
+                            ? "Remove from wishlist"
+                            : "Add to wishlist"
+                        }
+                        onClick={() =>
+                          toggleWishlist(product.id)
+                        }
+                        className={`absolute right-2.5 top-2.5 flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-md transition sm:right-3 sm:top-3 ${
+                          isWishlisted
+                            ? "border-[#E85D75] bg-[#E85D75] text-white"
+                            : "border-white/70 bg-white/85 text-[#16213E] hover:border-[#E85D75] hover:text-[#E85D75]"
+                        }`}
+                      >
+                        {isWishlisted ? "♥" : "♡"}
+                      </button>
                     </div>
 
-                    <p className="mt-3 text-[8px] font-semibold uppercase tracking-[0.4em] text-[#F4D58D] sm:text-[10px] sm:tracking-[0.5em]">
-                      Akarshan
-                    </p>
+                    {/* CONTENT */}
+                    <div className="flex flex-1 flex-col p-3.5 sm:p-4">
+                      <Link
+                        href={`/product/${encodeURIComponent(
+                          productId
+                        )}`}
+                      >
+                        <h2 className="line-clamp-2 min-h-[2.5rem] text-xs font-semibold leading-5 text-[#16213E] transition hover:text-[#E04F68] sm:text-sm">
+                          {productName}
+                        </h2>
+                      </Link>
 
-                  </div>
+                      {product.category && (
+                        <p className="mt-1.5 line-clamp-1 text-[9px] text-[#7A8798] sm:text-[10px]">
+                          {product.category}
+                        </p>
+                      )}
 
-                  <div className="absolute left-4 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[#63C7B8] shadow-[0_0_15px_rgba(99,199,184,0.8)]" />
+                      {/* PRICE */}
+                      <div className="mt-3 flex flex-wrap items-baseline gap-2">
+                        <span className="text-base font-bold text-[#16213E] sm:text-lg">
+                          ₹{price.toLocaleString("en-IN")}
+                        </span>
 
-                  <div className="absolute right-5 top-[22%] h-1.5 w-1.5 rounded-full bg-[#F4D58D] shadow-[0_0_15px_rgba(244,213,141,0.8)]" />
+                        {oldPrice > price && (
+                          <span className="text-[10px] text-[#8C8C8C] line-through sm:text-xs">
+                            ₹{oldPrice.toLocaleString("en-IN")}
+                          </span>
+                        )}
+                      </div>
 
-                  <div className="absolute bottom-[18%] right-10 h-2 w-2 rounded-full bg-[#E85D75] shadow-[0_0_15px_rgba(232,93,117,0.8)]" />
+                      {/* BADGES */}
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        <span className="rounded-full bg-[#DCEBE6] px-2 py-1 text-[8px] font-semibold text-[#245E56] sm:text-[9px]">
+                          ⚡ Fast Delivery
+                        </span>
 
-                </div>
+                        <span className="rounded-full bg-[#F4EACF] px-2 py-1 text-[8px] font-semibold text-[#725A1B] sm:text-[9px]">
+                          ✦ Best Quality
+                        </span>
+                      </div>
 
-              </div>
+                      {/* ACTIONS */}
+                      <div className="mt-auto grid grid-cols-2 gap-2 pt-4">
+                        <Link
+                          href={`/product/${encodeURIComponent(
+                            productId
+                          )}`}
+                          className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#16213E]/15 bg-[#F8F3EA] px-2 text-[9px] font-semibold text-[#16213E] transition hover:border-[#C9A85A] hover:bg-[#16213E] hover:text-[#F4D58D] sm:text-[10px]"
+                        >
+                          View Details
+                        </Link>
 
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openWhatsApp(product)
+                          }
+                          className="inline-flex min-h-10 items-center justify-center rounded-full bg-[#16213E] px-2 text-[9px] font-semibold text-[#F4D58D] transition hover:bg-[#223356] sm:text-[10px]"
+                        >
+                          WhatsApp
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
-
-          </div>
-
-          <div className="mt-2 grid grid-cols-1 gap-3 sm:hidden">
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-4 text-center backdrop-blur-xl">
-
-              <span className="text-xl">🎂</span>
-
-              <p className="mt-2 text-[9px] uppercase tracking-[0.25em] text-[#63C7B8]">
-                For Their Day
-              </p>
-
-              <p className="mt-1 text-xs font-medium text-white">
-                Make birthdays unforgettable.
-              </p>
-
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-4 text-center backdrop-blur-xl">
-
-              <span className="text-xl">❤️</span>
-
-              <p className="mt-2 text-[9px] uppercase tracking-[0.25em] text-[#F4D58D]">
-                For Someone Special
-              </p>
-
-              <p className="mt-1 text-xs font-medium text-white">
-                Say what words cannot.
-              </p>
-
-            </div>
-
-          </div>
-
-          <div className="mt-8 text-center sm:mt-2">
-
-            <p className="text-xs font-medium italic text-[#AEB8C7] sm:text-sm">
-              “The best gifts are the ones that make someone feel remembered.”
-            </p>
-
-            <Link
-              href="/shop"
-              className="
-                mt-6 inline-flex min-h-[48px] items-center justify-center
-                rounded-full
-                border border-[#F4D58D]/60
-                bg-[#F4D58D]
-                px-7 py-3
-                text-[12px] font-bold text-[#071426]
-                shadow-[0_12px_35px_rgba(244,213,141,0.18)]
-                transition duration-300
-                hover:-translate-y-1
-                hover:bg-white
-                active:scale-[0.98]
-                sm:px-8 sm:text-sm
-              "
-            >
-              Discover Your Gift →
-            </Link>
-
-          </div>
-
+          )}
         </div>
-
       </section>
 
-      {/* =========================================================
-          GIFTS FOR EVERY BUDGET
-      ========================================================= */}
-
-      <section className="relative overflow-hidden bg-[#F8F3EA] px-4 py-14 sm:px-6 sm:py-20 md:py-24">
-
-        <div className="pointer-events-none absolute -left-24 top-20 h-64 w-64 rounded-full bg-[#E85D75]/10 blur-3xl" />
-
-        <div className="pointer-events-none absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-[#63C7B8]/10 blur-3xl" />
-
-        <div className="relative mx-auto max-w-7xl">
-
-          <div className="text-center">
-
-            <p className="text-[9px] font-semibold uppercase tracking-[0.4em] text-[#A67822] sm:text-xs sm:tracking-[0.5em]">
-              Find Your Perfect Gift
-            </p>
-
-            <h2 className="mt-3 text-[1.9rem] font-semibold leading-tight text-[#16213E] sm:text-4xl md:text-5xl">
-              Gifts For Every Budget.
-            </h2>
-
-            <p className="mx-auto mt-4 max-w-2xl text-[13px] leading-6 text-[#526174] sm:text-base sm:leading-7">
-              Whatever your budget, there is always a thoughtful way to make
-              someone feel special.
-            </p>
-
-          </div>
-
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:mt-12 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
-
-            {budgetOptions.map((budget) => (
-              <Link
-                key={budget.title}
-                href={budget.href}
-                className={`
-                  group relative overflow-hidden
-                  rounded-[1.35rem]
-                  border border-[#D8CBB8]
-                  ${budget.className}
-                  p-4
-                  shadow-[0_10px_30px_rgba(30,40,60,0.06)]
-                  transition duration-500
-                  hover:-translate-y-2
-                  hover:border-[#C9A85A]
-                  hover:shadow-[0_20px_45px_rgba(30,40,60,0.13)]
-                  active:scale-[0.98]
-                  sm:rounded-[1.6rem]
-                  sm:p-6
-                `}
-              >
-
-                <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/30 blur-2xl transition duration-500 group-hover:scale-150" />
-
-                <div className="relative">
-
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/65 text-2xl shadow-sm sm:h-14 sm:w-14 sm:text-3xl">
-                    {budget.emoji}
-                  </div>
-
-                  <h3 className="mt-5 text-sm font-bold text-[#16213E] sm:text-lg">
-                    {budget.title}
-                  </h3>
-
-                  <p className="mt-1 text-[10px] leading-4 text-[#526174] sm:text-xs sm:leading-5">
-                    {budget.subtitle}
-                  </p>
-
-                  <div className="mt-5 flex items-center justify-between">
-
-                    <span className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#A67822] sm:text-[10px]">
-                      Explore Gifts
-                    </span>
-
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#16213E] text-xs text-[#F4D58D] transition duration-300 group-hover:translate-x-1 sm:h-8 sm:w-8">
-                      →
-                    </span>
-
-                  </div>
-
-                </div>
-
-              </Link>
-            ))}
-
-          </div>
-
-          <div className="mt-7 text-center sm:mt-9">
-
-            <Link
-              href="/shop"
-              className="
-                inline-flex min-h-[45px] items-center justify-center
-                rounded-full
-                border border-[#16213E]/15
-                bg-white/70
-                px-6 py-3
-                text-[10px] font-semibold text-[#16213E]
-                shadow-sm
-                transition duration-300
-                hover:-translate-y-1
-                hover:border-[#C9A85A]
-                hover:bg-[#16213E]
-                hover:text-[#F4D58D]
-                active:scale-[0.98]
-                sm:text-xs
-              "
-            >
-              View All Gifts →
-            </Link>
-
-          </div>
-
-        </div>
-
-      </section>
-
-      {/* =========================================================
-          TRUST FEATURES
-      ========================================================= */}
-
-      <section className="border-y border-[#D5C8B8] bg-[#16213E] px-3 py-7 sm:px-6 sm:py-10">
-
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4 md:gap-4">
-
-          {features.map((feature) => (
-            <div
-              key={feature.title}
-              className="
-                rounded-2xl border border-white/10
-                bg-white/[0.045]
-                px-2.5 py-4 text-center
-                shadow-[0_10px_30px_rgba(0,0,0,0.12)]
-                transition duration-300
-                hover:-translate-y-1
-                hover:border-[#63C7B8]/40
-                sm:p-5
-              "
-            >
-
-              <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-[#63C7B8]/10 text-base text-[#F4D58D] sm:h-11 sm:w-11 sm:text-xl">
-                {feature.icon}
-              </div>
-
-              <h3 className="mt-2.5 text-[10px] font-semibold leading-4 text-white sm:mt-4 sm:text-base">
-                {feature.title}
-              </h3>
-
-              <p className="mt-1 text-[8px] leading-4 text-[#D8DEE8] sm:mt-2 sm:text-sm sm:leading-5">
-                {feature.text}
-              </p>
-
-            </div>
-          ))}
-
-        </div>
-
-      </section>
-
-      {/* =========================================================
-          CATEGORIES
-      ========================================================= */}
-
-      <section className="relative overflow-hidden bg-[#F8F3EA] px-4 py-14 sm:px-6 sm:py-20 md:py-24">
-
-        <div className="pointer-events-none absolute -left-32 top-20 h-72 w-72 rounded-full bg-[#63C7B8]/15 blur-3xl" />
-
-        <div className="pointer-events-none absolute -right-32 bottom-10 h-80 w-80 rounded-full bg-[#F4D58D]/20 blur-3xl" />
-
-        <div className="relative mx-auto max-w-7xl">
-
-          <div className="text-center">
-
-            <p className="text-[9px] font-semibold uppercase tracking-[0.4em] text-[#A67822] sm:text-xs sm:tracking-[0.5em]">
-              Discover
-            </p>
-
-            <h2 className="mt-3 text-[1.75rem] font-semibold leading-tight text-[#16213E] sm:text-4xl md:text-5xl">
-              Find Something Special
-            </h2>
-
-            <p className="mx-auto mt-4 max-w-2xl text-[13px] leading-6 text-[#526174] sm:text-base sm:leading-7">
-              From birthdays to anniversaries, celebrations to unforgettable
-              moments — find a gift made to be remembered.
-            </p>
-
-          </div>
-
-          <div className="mt-8 grid grid-cols-2 gap-3.5 sm:mt-12 sm:gap-5 lg:grid-cols-4">
-
-            {categories.map((category, index) => (
-              <Link
-                href={`/categories/${category.slug}`}
-                key={category.name}
-                className={`
-                  group flex h-full flex-col overflow-hidden rounded-[1.25rem]
-                  border border-[#D8CBB8]
-                  ${cardColors[index]}
-                  shadow-[0_10px_30px_rgba(30,40,60,0.07)]
-                  transition duration-500
-                  hover:-translate-y-2
-                  hover:border-[#C9A85A]
-                  hover:shadow-[0_20px_45px_rgba(30,40,60,0.14)]
-                  active:scale-[0.98]
-                `}
-              >
-
-                <div className="relative h-32 overflow-hidden sm:h-52">
-
-                  <img
-                    src={category.image}
-                    alt={category.name}
-                    className="
-                      h-full w-full object-cover
-                      transition duration-700
-                      group-hover:scale-110
-                    "
-                  />
-
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#071426]/60 via-transparent to-transparent" />
-
-                  <span className="absolute bottom-2 left-2 rounded-full bg-[#16213E]/90 px-2.5 py-1.5 text-[7px] font-semibold text-[#F4D58D] backdrop-blur-sm sm:bottom-4 sm:left-4 sm:px-4 sm:text-xs">
-                    {category.name}
-                  </span>
-
-                </div>
-
-                <div className="flex flex-1 flex-col p-3 sm:p-5">
-
-                  <h3 className="text-xs font-semibold leading-5 text-[#16213E] sm:text-lg">
-                    {category.name}
-                  </h3>
-
-                  <p className="mt-1 text-[9px] leading-4 text-[#526174] sm:mt-1.5 sm:text-sm sm:leading-6">
-                    {category.description}
-                  </p>
-
-                  <p className="mt-auto pt-3 text-[8px] font-bold uppercase tracking-widest text-[#E04F68] sm:pt-4 sm:text-xs">
-                    Explore →
-                  </p>
-
-                </div>
-
-              </Link>
-            ))}
-
-          </div>
-
-          <div className="mt-7 text-center sm:mt-8">
-
-            <Link
-              href="/categories"
-              className="
-                inline-flex min-h-[46px] items-center justify-center
-                rounded-full border border-[#16213E]/20
-                bg-white/60 px-6 py-3
-                text-[11px] font-semibold text-[#16213E]
-                transition duration-300
-                hover:border-[#C9A85A]
-                hover:bg-[#16213E]
-                hover:text-[#F4D58D]
-                active:scale-[0.98]
-                sm:text-xs
-              "
-            >
-              View All Categories →
-            </Link>
-
-          </div>
-
-        </div>
-
-      </section>
-
-      {/* =========================================================
-          FEATURE STRIP
-      ========================================================= */}
-
-      <section className="border-y border-[#D7C7B2] bg-gradient-to-r from-[#E8DDD2] via-[#F5E7D9] to-[#DCEBE6] px-5 py-11 sm:py-14">
-
-        <div className="mx-auto max-w-5xl text-center">
-
-          <p className="text-[9px] font-semibold uppercase tracking-[0.4em] text-[#A67822] sm:text-xs sm:tracking-[0.45em]">
-            Made For Moments
+      {/* =====================================================
+          BOTTOM CTA
+      ===================================================== */}
+
+      <section className="border-t border-[#D8CBB8] bg-[#16213E] px-5 py-14 text-center sm:py-18">
+        <div className="mx-auto max-w-3xl">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.4em] text-[#F4D58D] sm:text-xs">
+            Can't Find What You Need?
           </p>
 
-          <h2 className="mt-3 text-[1.55rem] font-semibold leading-tight text-[#16213E] sm:text-4xl">
-            A little something for everyone.
+          <h2 className="mt-4 text-2xl font-semibold text-white sm:text-4xl">
+            Let us help you find the perfect gift.
           </h2>
 
-          <p className="mx-auto mt-4 max-w-2xl text-[13px] leading-6 text-[#526174] sm:text-base sm:leading-7">
-            Whether it is a birthday, anniversary, celebration or a simple
-            surprise — find something that makes their day special.
-          </p>
-
-        </div>
-
-      </section>
-
-      {/* =========================================================
-          CTA
-      ========================================================= */}
-
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#E8D9DF] via-[#F3E2DD] to-[#DCEBE6] px-5 py-16 text-center sm:py-24 md:py-28">
-
-        <div className="pointer-events-none absolute left-1/2 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#63C7B8]/10 blur-3xl" />
-
-        <div className="relative mx-auto max-w-4xl">
-
-          <p className="text-[9px] font-semibold uppercase tracking-[0.4em] text-[#A67822] sm:text-xs sm:tracking-[0.5em]">
-            Your Perfect Gift Awaits
-          </p>
-
-          <h2 className="mt-5 text-[2.15rem] font-bold leading-[1.05] text-[#16213E] sm:text-5xl md:text-7xl">
-            Make Their Moment
-            <br />
-            <span className="text-[#E04F68]">
-              Unforgettable.
-            </span>
-          </h2>
-
-          <p className="mx-auto mt-5 max-w-2xl text-[13px] leading-6 text-[#526174] sm:mt-6 sm:text-base sm:leading-7">
-            Find something beautiful, thoughtful and made to turn an ordinary
-            moment into a memory.
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-[#C8D0DC]">
+            Tell us what you are looking for and we will help you
+            choose something special.
           </p>
 
           <Link
-            href="/shop"
-            className="
-              mt-7 inline-flex min-h-[50px] items-center justify-center
-              rounded-full bg-[#16213E]
-              px-7 py-3.5
-              text-[13px] font-semibold text-[#F4D58D]
-              shadow-[0_12px_35px_rgba(22,33,62,0.25)]
-              transition duration-300
-              hover:-translate-y-1 hover:bg-[#223356]
-              active:scale-[0.98]
-              sm:mt-8 sm:px-8 sm:py-4 sm:text-sm
-            "
+            href="/contact"
+            className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full bg-[#F4D58D] px-7 py-3 text-xs font-bold text-[#16213E] transition hover:-translate-y-1 hover:bg-white"
           >
-            Explore Gifts →
+            Contact Us →
           </Link>
-
         </div>
-
       </section>
-
-      {/* =========================================================
-          FOOTER
-      ========================================================= */}
-
-      <footer className="bg-[#16213E] text-[#F5EFE6]">
-
-        <div className="mx-auto max-w-7xl px-5 py-12 sm:px-6 sm:py-14">
-
-          <div className="grid gap-9 text-center sm:grid-cols-2 md:grid-cols-4 md:text-left">
-
-            <div>
-
-              <p className="text-xl font-semibold tracking-[0.18em] text-[#F4D58D]">
-                AKARSHAN
-              </p>
-
-              <p className="mt-1 text-xs tracking-[0.3em] text-[#BFC9D8]">
-                GIFT GALLERY
-              </p>
-
-              <p className="mx-auto mt-5 max-w-xs text-[13px] leading-6 text-[#C8D0DC] md:mx-0 sm:text-sm">
-                Thoughtful gifts, beautiful memories and special moments —
-                crafted with love since 2006.
-              </p>
-
-            </div>
-
-            <div>
-
-              <h3 className="font-semibold text-[#F4D58D]">
-                Quick Links
-              </h3>
-
-              <div className="mt-4 space-y-2 text-[13px] text-[#D3DAE3] sm:mt-5 sm:space-y-3 sm:text-sm">
-
-                <Link href="/" className="block py-1 transition hover:text-[#63C7B8]">
-                  Home
-                </Link>
-
-                <Link href="/shop" className="block py-1 transition hover:text-[#63C7B8]">
-                  Shop
-                </Link>
-
-                <Link href="/categories" className="block py-1 transition hover:text-[#63C7B8]">
-                  Categories
-                </Link>
-
-                <Link href="/about" className="block py-1 transition hover:text-[#63C7B8]">
-                  About Us
-                </Link>
-
-                <Link href="/contact" className="block py-1 transition hover:text-[#63C7B8]">
-                  Contact
-                </Link>
-
-              </div>
-
-            </div>
-
-            <div>
-
-              <h3 className="font-semibold text-[#F4D58D]">
-                Help &amp; Care
-              </h3>
-
-              <p className="mx-auto mt-4 max-w-xs text-[13px] leading-6 text-[#C8D0DC] md:mx-0 sm:mt-5 sm:text-sm">
-                Need help with an order, customization or anything else?
-                We are always happy to help.
-              </p>
-
-              <Link
-                href="/contact"
-                className="mt-4 inline-flex min-h-10 items-center text-[13px] font-medium text-[#63C7B8] transition hover:text-[#F4D58D] sm:text-sm"
-              >
-                Contact Us →
-              </Link>
-
-            </div>
-
-            <div>
-
-              <h3 className="font-semibold text-[#F4D58D]">
-                Follow Us
-              </h3>
-
-              <p className="mx-auto mt-4 max-w-xs text-[13px] leading-6 text-[#C8D0DC] md:mx-0 sm:text-sm">
-                Follow Akarshan Gift Gallery for new gifts, offers and
-                special moments.
-              </p>
-
-              <a
-                href="https://www.instagram.com/akarshan_gift/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="
-                  mt-5 inline-flex min-h-11 items-center gap-2.5
-                  rounded-full border border-[#63C7B8]/40
-                  bg-white/[0.04] px-4 py-2.5
-                  text-[12px] font-medium text-white
-                  transition
-                  hover:-translate-y-1
-                  hover:border-[#63C7B8]
-                  hover:bg-[#63C7B8]/10
-                  active:scale-[0.98]
-                  sm:gap-3 sm:px-5 sm:py-3 sm:text-sm
-                "
-              >
-
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="shrink-0"
-                >
-                  <rect
-                    x="3"
-                    y="3"
-                    width="18"
-                    height="18"
-                    rx="5"
-                    stroke="#F4D58D"
-                    strokeWidth="2"
-                  />
-
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="4"
-                    stroke="#F4D58D"
-                    strokeWidth="2"
-                  />
-
-                  <circle
-                    cx="17.5"
-                    cy="6.5"
-                    r="1"
-                    fill="#63C7B8"
-                  />
-                </svg>
-
-                <span>@akarshan_gift</span>
-
-              </a>
-
-            </div>
-
-          </div>
-
-          <div className="mt-10 border-t border-white/10 pt-6 sm:mt-12 sm:pt-7">
-
-            <div className="flex flex-col items-center justify-between gap-2.5 text-center text-[10px] leading-5 text-[#AEB8C7] sm:text-xs md:flex-row md:gap-3">
-
-              <p>
-                © 2026 Akarshan Gift Gallery. All rights reserved.
-              </p>
-
-              <p className="text-[#F4D58D]">
-                Every Gift Tells a Story.
-              </p>
-
-              <p>
-                Made with ♥ for special moments.
-              </p>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </footer>
-
-      {/* =========================================================
-          FLOATING WHATSAPP BUTTON
-      ========================================================= */}
-
-      <a
-        href="https://wa.me/919826368001?text=Hi%20Akarshan%20Gift%20Gallery%2C%20I%20want%20to%20know%20more%20about%20your%20gifts"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Chat on WhatsApp"
-        className="
-          fixed bottom-4 right-4 z-50
-          flex items-center gap-2
-          rounded-full
-          border border-[#F4D58D]/70
-          bg-[#16213E]/95
-          px-3 py-2.5
-          text-white
-          shadow-[0_12px_40px_rgba(0,0,0,0.30)]
-          backdrop-blur-xl
-          transition duration-300
-          hover:-translate-y-1 hover:scale-105
-          hover:border-[#F4D58D]
-          active:scale-[0.97]
-          sm:bottom-7 sm:right-7
-          sm:gap-3 sm:px-4 sm:py-3
-        "
-      >
-
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#63C7B8]/15 text-xl sm:h-11 sm:w-11">
-          💬
-        </div>
-
-        <div className="pr-1">
-
-          <p className="text-[7px] font-semibold uppercase tracking-[0.2em] text-[#F4D58D] sm:text-[8px]">
-            Need Help?
-          </p>
-
-          <p className="text-[10px] font-semibold text-white sm:text-xs">
-            Chat on WhatsApp
-          </p>
-
-        </div>
-
-      </a>
-
     </main>
   );
 }
